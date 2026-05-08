@@ -1,7 +1,7 @@
 services:
     laravel.test:
         build:
-            context: ./vendor/laravel/sail/runtimes/8.3
+            context: ./services/sail
             dockerfile: Dockerfile
             args:
                 WWWGROUP: '${WWWGROUP}'
@@ -73,7 +73,7 @@ services:
         volumes:
             - ./services/face_recognize:/app
         ports:
-            - "8001:8000"
+            - "${FACE_RECOGNIZE_PORT:-8001}:8000"
         networks:
             - sail
 
