@@ -1,3 +1,3 @@
 <template>
-    <img src="icon_kndi.svg" alt="KNDI Logo" >
+    <img src="logo.png" alt="KNDI Logo" >
 </template>

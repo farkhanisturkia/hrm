@@ -169,7 +169,7 @@ const getInitials = (name) => {
                     <button @click="openMenus = !openMenus" class="p-2 text-gray-600 dark:text-gray-300 rounded-none hover:bg-white/20 focus:outline-none transition">
                         <Hamburger :show="openMenus" />
                     </button>
-                    <img src="/icon_kndi.svg" alt="Logo" class="w-8 h-8 drop-shadow-md" />
+                    <img src="/logo.png" alt="Logo" class="w-8 h-8 drop-shadow-md" />
                     <span class="font-bold text-lg text-gray-800 dark:text-white tracking-tight">KNDI Task</span>
                 </div>
                 <button @click="showProfilePanel = true" class="relative">
@@ -203,7 +203,7 @@ const getInitials = (name) => {
             >
                 <div v-if="openMenus" class="flex items-center gap-3 overflow-hidden whitespace-nowrap animate-fade-in">
                     <div class="bg-white/10 p-1.5 rounded-none shadow-lg border border-white/10">
-                        <img src="/icon_kndi.svg" alt="Logo" class="w-6 h-6 shrink-0" />
+                        <img src="/logo.png" alt="Logo" class="w-6 h-6 shrink-0" />
                     </div>
                     <span class="text-white font-bold text-2xl tracking-wide">KNDI</span>
                 </div>

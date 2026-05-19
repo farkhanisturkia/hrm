@@ -25,7 +25,7 @@ createInertiaApp({
 
         const link = document.createElement('link');
         link.rel = 'icon';
-        link.href = '/icon_kndi.svg';
+        link.href = '/logo.png';
         link.type = 'image/svg';
         document.head.appendChild(link);
 

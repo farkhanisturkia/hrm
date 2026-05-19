@@ -1,4 +1,4 @@
-<p align="center"><a href="#" target="_blank"><img src="./public/icon_kndi.svg" width="400" alt="Laravel Logo"></a></p>
+<p align="center"><a href="#" target="_blank"><img src="./public/logo.png" width="400" alt="Laravel Logo"></a></p>
 
 ## About Project and task management system
 
