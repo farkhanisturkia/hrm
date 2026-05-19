@@ -57,7 +57,7 @@ onMounted(() => {
               Task Manager
             </h1>
             <p class="text-xl font-medium text-[#2876BC] mb-6">
-                Kyodo News Digital Indonesia
+                Micro Systems Root
             </p>
             <p class="max-w-md text-base text-black dark:text-white leading-relaxed mb-10">
                 Kelola project, tugas, waktu kerja, skill karyawan, dan impor data secara efisien dalam satu platform terintegrasi.
@@ -186,7 +186,7 @@ onMounted(() => {
     </div>
 
     <footer class="relative z-20 w-full text-sm text-dark dark:text-white text-center">
-      <p>© {{ new Date().getFullYear() }} PT. KND Indonesia</p>
+      <p>© {{ new Date().getFullYear() }} MSRoot.ID</p>
     </footer>
   </div>
 </template>
