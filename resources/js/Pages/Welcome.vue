@@ -3,8 +3,6 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref, onMounted } from 'vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
-import Checkbox from '@/Components/Checkbox.vue';
-import PrimaryButton from '@/Components/PrimaryButton.vue';
 
 defineProps({
   canLogin: Boolean,
@@ -16,6 +14,7 @@ defineProps({
 
 const isLoaded = ref(false);
 const showPassword = ref(false);
+const showDemoModal = ref(false);
 
 const form = useForm({
   email: '',
@@ -63,13 +62,23 @@ onMounted(() => {
             <p class="max-w-md text-base text-black dark:text-white leading-relaxed mb-10">
                 Kelola project, tugas, waktu kerja, skill karyawan, dan impor data secara efisien dalam satu platform terintegrasi.
             </p>
-            <Link
-              v-if="$page.props.attendance_enabled"
-              href="/recognize"
-              class="inline-block px-8 py-3 bg-[#D12025] hover:bg-[#b01b1f] text-white text-sm font-extrabold rounded-full transition-all shadow-lg shadow-black/20"
-            >
-              PRESENSI
-            </Link>
+            <div class="flex flex-row gap-4">
+              <Link
+                v-if="$page.props.attendance_enabled"
+                href="/recognize"
+                class="inline-block px-8 py-3 bg-[#D12025] hover:bg-[#b01b1f] text-white text-sm font-extrabold rounded-full transition-all shadow-lg shadow-black/20"
+              >
+                PRESENSI
+              </Link>
+              
+              <button
+                @click="showDemoModal = true"
+                type="button"
+                class="inline-block px-8 py-3 bg-white dark:bg-slate-900 hover:bg-slate-200 dark:hover:bg-slate-800 border-2 border-[#D12025] text-black dark:text-white text-sm font-extrabold rounded-full transition-all shadow-lg shadow-black/20 cursor-pointer"
+              >
+                DEMO
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -123,6 +132,55 @@ onMounted(() => {
                 <span>{{ form.processing ? 'MEMPROSES...' : 'MASUK' }}</span>
               </button>
             </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL DEMO (Dikontrol dengan Vue State) -->
+    <div 
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm transition-opacity duration-300"
+      :class="{ 'opacity-100 pointer-events-auto': showDemoModal, 'opacity-0 pointer-events-none': !showDemoModal }"
+      @click.self="showDemoModal = false"
+    >
+      <div 
+        class="bg-zinc-900 border border-white/10 max-w-lg w-full mx-5 p-6 rounded-3xl shadow-2xl transform transition-transform duration-300"
+        :class="{ 'scale-100': showDemoModal, 'scale-95': !showDemoModal }"
+      >
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-2xl font-bold text-white flex items-center gap-2">
+                <span class="w-8 h-8 bg-[#D12025] rounded-xl text-sm flex items-center justify-center text-white font-bold">i</span>
+                Informasi Akses Demo
+            </h3>
+        </div>
+        
+        <div class="space-y-5 text-sm text-zinc-400">
+            <p>Terima kasih telah tertarik dengan platform <strong class="text-white">TASK MANAGER</strong>. Anda dapat mencoba akses sistem ini menggunakan kredensial berikut untuk akun Human Resources:</p>
+            
+            <div class="bg-zinc-950 border border-white/5 p-4 rounded-2xl space-y-3 font-mono text-xs">
+                <div>
+                    <span class="text-[#D12025]">Email :</span> 
+                    <span class="text-white select-all">admin@example.com</span>
+                </div>
+                <div>
+                    <span class="text-[#D12025]">Password :</span> 
+                    <span class="text-white select-all">password</span>
+                </div>
+            </div>
+
+            <p>Bila ada kesulitan dalam pengoperasian dapat menghubungi kami <a href="https://msroot.my.id" target="_BLANK" class="text-[#2876BC] font-semibold underline transition-colors">disini</a></p>
+
+            <div class="text-xs text-zinc-500 mt-2">
+                * Harap gunakan kredensial ini hanya untuk keperluan demonstrasi atau pengujian sistem.
+            </div>
+        </div>
+        
+        <div class="mt-8 flex justify-end">
+            <button 
+              @click="showDemoModal = false" 
+              class="px-5 py-3 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl font-medium transition-all cursor-pointer"
+            >
+                Tutup
+            </button>
         </div>
       </div>
     </div>
