@@ -55,16 +55,6 @@ services:
             - '${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025'
         networks:
             - sail
-    pma:
-        image: 'phpmyadmin:latest'
-        ports:
-            -   '${PMA_PORT:-8100}:80'
-        networks:
-            - sail
-        environment:
-            PMA_HOST: mysql
-            PMA_USER: '${DB_USERNAME}'
-            PMA_PASSWORD: '${DB_PASSWORD}'
 
     face_recognize:
         build: 
