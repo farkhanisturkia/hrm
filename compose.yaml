@@ -23,7 +23,7 @@ services:
             - sail
         depends_on:
             - mysql
-            - face_recognize
+            # - face_recognize
     mysql:
         image: 'mysql:8.0'
         ports:
@@ -56,16 +56,16 @@ services:
         networks:
             - sail
 
-    face_recognize:
-        build: 
-            context: ./services/face_recognize
-            dockerfile: Dockerfile
-        volumes:
-            - ./services/face_recognize:/app
-        ports:
-            - "${FACE_RECOGNIZE_PORT:-8001}:8000"
-        networks:
-            - sail
+    # face_recognize:
+    #     build: 
+    #         context: ./services/face_recognize
+    #         dockerfile: Dockerfile
+    #     volumes:
+    #         - ./services/face_recognize:/app
+    #     ports:
+    #         - "${FACE_RECOGNIZE_PORT:-8001}:8000"
+    #     networks:
+    #         - sail
 
     redis:
         image: 'redis:latest'
