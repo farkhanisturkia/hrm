@@ -6,6 +6,7 @@ services:
             args:
                 WWWGROUP: '${WWWGROUP}'
         image: sail-8.3/app
+        restart: unless-stopped
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         ports:
@@ -26,6 +27,7 @@ services:
             # - face_recognize
     mysql:
         image: 'mysql:8.0'
+        restart: unless-stopped
         ports:
             - '${FORWARD_DB_PORT:-3306}:3306'   
         environment:
@@ -50,6 +52,7 @@ services:
             timeout: 5s
     mailpit:
         image: 'axllent/mailpit:latest'
+        restart: unless-stopped
         ports:
             - '${FORWARD_MAILPIT_PORT:-1025}:1025'
             - '${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025'
@@ -69,6 +72,7 @@ services:
 
     redis:
         image: 'redis:latest'
+        restart: unless-stopped
         ports:
             - '${REDIS_PORT:-6379}:6379'
         volumes:
