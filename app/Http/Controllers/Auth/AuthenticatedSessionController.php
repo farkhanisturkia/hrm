@@ -34,9 +34,9 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         switch (Auth::user()->role) {
-            case 'pg':
-            case 'ds':
-            case 'co':
+            case 'engineer':
+            case 'designer':
+            case 'communicator':
                 $loc = 'task.list';
                 break;
             
@@ -45,7 +45,7 @@ class AuthenticatedSessionController extends Controller
                 break;
         }
 
-        return redirect()->intended(route($loc, absolute: false))->with('success', 'Login berhasil!');
+        return redirect()->intended(route($loc, absolute: false))->with('success', 'Login successful!');
     }
 
     /**

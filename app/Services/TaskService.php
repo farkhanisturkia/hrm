@@ -2,16 +2,17 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Pagination\LengthAwarePaginator;
 
-use App\Models\ProjectOwner;
 use App\Models\Task;
 use App\Models\User;
-use App\Models\Project;
 use App\Models\Reply;
+use App\Models\Project;
 use App\Models\PullRequest;
+use App\Models\ProjectOwner;
 use App\Models\TaskReviewer;
 use App\Services\TaskNotificationService;
 
@@ -23,48 +24,87 @@ class TaskService
 
     public function getFormData(): array
     {
-        return [
-            'users'        => User::select('id', 'name', 'email', 'role')->get(),
-            'communicator' => User::select('id', 'name')->where('role', 'co')->get(),
-            'programmer'   => User::select('id', 'name')->whereIn('role', ['pg', 'pm'])->get(),
-            'designer'     => User::select('id', 'name')->where('role', 'ds')->get(),
-        ];
+        $userVersion = Cache::get('users_cache_version', 1);
+        $cacheKey = "all_task_form_data_u{$userVersion}";
+
+        return Cache::remember($cacheKey, 1800, function () {
+            $allUsers = User::select('id', 'name', 'email', 'role')->get();
+
+            return [
+                'userData' => [
+                    'users'        => $allUsers,
+                    'creator'      => $allUsers->whereIn('role', ['manager', 'leader', 'communicator'])->values(),
+                    'communicator' => $allUsers->where('role', 'communicator')->values(),
+                    'programmer'   => $allUsers->whereIn('role', ['engineer', 'leader'])->values(),
+                    'designer'     => $allUsers->where('role', 'designer')->values(),
+                ],
+            ];
+        });
     }
 
     public function getFilteredTasks(array $filters): LengthAwarePaginator
     {
-        $user  = Auth::user();
-        $query = Task::query()->with('project');
+        $user       = Auth::user();
+        $page       = $filters['page'] ?? 1;
+        $search     = $filters['search'] ?? '';
+        $projectId  = $filters['project_id'] ?? null;
+        $creatorId  = $filters['creator_id'] ?? null;
+        $assignId   = $filters['assign_id'] ?? null;
 
-        if (!empty($filters['project_id'])) {
-            $query->where('project_id', $filters['project_id']);
-        }
+        $taskVersion = Cache::get('tasks_cache_version', 1);
+        $projectVersion = Cache::get('projects_cache_version', 1);
 
-        if (!empty($filters['search'])) {
-            $search = $filters['search'];
-            $query->where(function ($q) use ($search) {
-                $q->where('issue', 'LIKE', "%{$search}%")
-                  ->orWhere('ticket_link', 'LIKE', "%{$search}%");
-            });
-        }
+        $projectKey = $projectId ? $projectId : 'all';
+        $creatorKey = $creatorId ? $creatorId : 'all';
+        $assignKey = $assignId ? $assignId : 'all';
+        $cacheKey = "all_task_t{$taskVersion}_p{$projectVersion}_u{$user->id}_pk{$projectKey}_ck{$creatorKey}_ak{$assignKey}_s" . md5($search) . "_pg{$page}";
+        return Cache::remember($cacheKey, 1800, function () use ($filters, $user) {
+            $query = Task::query()->with('project');
 
-        if (in_array($user->role, ['pm', 'pg', 'ds'])) {
-            $query->where('isActive', true);
-        }
+            if (!empty($filters['project_id'])) {
+                $query->where('project_id', $filters['project_id']);
+            }
+            if (!empty($filters['creator_id'])) {
+                $query->where('creator', $filters['creator_id']);
+            }
+            if (!empty($filters['assign_id'])) {
+                $assignId = (int) $filters['assign_id'];
 
-        if ($user->role === 'pg') {
-            $query->where(function ($q) use ($user) {
-                $q->whereJsonContains('programmer', $user->id)
-                  ->orWhereJsonContains('reviewer', $user->id);
-            });
-        } elseif ($user->role === 'ds') {
-            $query->whereJsonContains('designer', $user->id);
-        }
+                $query->where(function ($q) use ($assignId) {
+                    $q->where('pm', $assignId)
+                    ->orWhereJsonContains('communicator', $assignId)
+                    ->orWhereJsonContains('programmer', $assignId)
+                    ->orWhereJsonContains('designer', $assignId);
+                });
+            }
 
-        return $query
-            ->orderByRaw('ISNULL(due_date), due_date ASC')
-            ->paginate(10)
-            ->withQueryString();
+            if (!empty($filters['search'])) {
+                $search = $filters['search'];
+                $query->where(function ($q) use ($search) {
+                    $q->where('issue', 'LIKE', "%{$search}%")
+                    ->orWhere('ticket_link', 'LIKE', "%{$search}%");
+                });
+            }
+
+            if (in_array($user->role, ['leader', 'engineer', 'designer'])) {
+                $query->where('isActive', true);
+            }
+
+            if ($user->role === 'engineer') {
+                $query->where(function ($q) use ($user) {
+                    $q->where('pm', $user->id)
+                    ->orwhereJsonContains('programmer', $user->id)
+                    ->orWhereJsonContains('reviewer', $user->id);
+                });
+            } elseif ($user->role === 'designer') {
+                $query->whereJsonContains('designer', $user->id);
+            }
+
+            return $query
+                ->orderByRaw('ISNULL(due_date), due_date ASC')
+                ->paginate(10)
+                ->withQueryString();
+        });
     }
 
     public function store(array $data): Task
@@ -82,33 +122,73 @@ class TaskService
             'updater' => Auth::id(),
         ]);
 
-        $this->createLog("[CREATE] task for {$task->issue}!");
+        $this->createLog("[CREATE] {$task->issue}!");
         return $task;
     }
 
     public function update(Task $task, array $data): Task
     {
-        $project = Project::findOrFail($data['project_id']);
+        $task->load('project');
+        $oldProjectName = $task->project->name ?? 'None';
+        $oldIssue = $task->issue;
+
+        $newProject = Project::findOrFail($data['project_id']);
+
+        $changes = [];
+        if ($task->project_id !== $newProject->id) {
+            $changes[] = "project from '{$oldProjectName}' to '{$newProject->name}'";
+        }
+        if ($task->issue !== $data['issue']) {
+            $changes[] = "issue from '{$task->issue}' to '{$data['issue']}'";
+        }
+        $newTicketLink = $data['ticket_link'] ?? null;
+        if ($task->ticket_link !== $newTicketLink) {
+            $oldLink = $task->ticket_link ?? 'None';
+            $newLink = $newTicketLink ?? 'None';
+            $changes[] = "ticket_link from '{$oldLink}' to '{$newLink}'";
+        }
+        $newRelatedLinks = !empty($data['related_links']) ? $data['related_links'] : null;
+        if ($task->related_links !== $newRelatedLinks) {
+            $oldRel = !empty($task->related_links) ? json_encode($task->related_links) : 'None';
+            $newRel = !empty($newRelatedLinks) ? json_encode($newRelatedLinks) : 'None';
+            $changes[] = "related_links from '{$oldRel}' to '{$newRel}'";
+        }
+        $newDescription = $data['description'] ?? null;
+        if ($task->description !== $newDescription) {
+            $oldDesc = $task->description ?? 'None';
+            $newDesc = $newDescription ?? 'None';
+            $changes[] = "description from '{$oldDesc}' to '{$newDesc}'";
+        }
+        $newStartDate = Carbon::parse($data['start_date'])->format('Y-m-d');
+        $oldStartDate = $task->start_date ? Carbon::parse($task->start_date)->format('Y-m-d') : null;
+        if ($oldStartDate !== $newStartDate) {
+            $changes[] = "start_date from '{$oldStartDate}' to '{$newStartDate}'";
+        }
+        $newDueDate = !empty($data['due_date']) ? Carbon::parse($data['due_date'])->format('Y-m-d') : null;
+        $oldDueDate = $task->due_date ? Carbon::parse($task->due_date)->format('Y-m-d') : null;
+        if ($oldDueDate !== $newDueDate) {
+            $oldDue = $oldDueDate ?? 'None';
+            $newDue = $newDueDate ?? 'None';
+            $changes[] = "due_date from '{$oldDue}' to '{$newDue}'";
+        }
 
         $task->update([
-            'project_id' => $project->id,
-            'issue' => $data['issue'],
-            'ticket_link' => $data['ticket_link'],
-            'related_links' => !empty($data['related_links']) ? $data['related_links'] : null,
-            'description' => $data['description'] ?? null,
-            'start_date' => Carbon::parse($data['start_date']),
-            'due_date' => !empty($data['due_date']) ? $data['due_date'] : null,
-            'updater' => Auth::id(),
+            'project_id'    => $newProject->id,
+            'issue'         => $data['issue'],
+            'ticket_link'   => $newTicketLink,
+            'related_links' => $newRelatedLinks,
+            'description'   => $newDescription,
+            'start_date'    => $newStartDate,
+            'due_date'      => $newDueDate,
+            'updater'       => Auth::id(),
         ]);
 
-        $this->createLog("[UPDATE] task for task {$task->issue}");
-        return $task;
-    }
+        if (!empty($changes)) {
+            $detailLog = implode(', ', $changes);
+            $this->createLog("[UPDATE] task {$oldIssue} ({$detailLog})");
+        }
 
-    public function destroy(Task $task): void
-    {
-        $this->createLog("[DELETE] task for {$task->issue}");
-        $task->delete();
+        return $task;
     }
 
     public function closeTask(Task $task): void
@@ -118,7 +198,7 @@ class TaskService
             'isActive' => false,
         ]);
 
-        $this->createLog("[CLOSE] task for {$task->issue}");
+        $this->createLog("[CLOSE] {$task->issue}");
     }
 
     public function activeTask(Task $task): void
@@ -129,7 +209,9 @@ class TaskService
             'updater'  => Auth::id(),
         ]);
 
-        $this->createLog("[ACTIVE] task for {$task->issue}");
+        $status = $task->isActive ? 'ACTIVE' : 'INACTIVE';
+
+        $this->createLog("[{$status}] {$task->name}");
     }
 
     public function assignTask(Task $task, array $data): void
@@ -141,15 +223,13 @@ class TaskService
         ];
 
         $task->update([
-            'pl' => $data['pl'] ?? null,
+            'pm' => $data['pm'] ?? null,
             'programmer'   => !empty($data['programmer']) ? $data['programmer'] : null,
             'designer'     => !empty($data['designer']) ? $data['designer'] : null,
             'communicator' => !empty($data['communicator']) ? $data['communicator'] : null,
-            'isAssign'     => true,
         ]);
 
-        $this->createLog("[ASSIGN] task for {$task->issue}");
-        
+        $this->createLog("[ASSIGN] {$task->issue}");
 
         $newAssignments = [
             'Programmer' => $data['programmer'] ?? [],
@@ -183,10 +263,9 @@ class TaskService
 
         $task->update([
             'reviewer' => !empty($newReviewerIds) ? $newReviewerIds : null,
-            'isAssign' => true,
         ]);
 
-        $this->createLog("[ASSIGN] task for {$task->issue}");
+        $this->createLog("[ASSIGN] {$task->issue}");
 
         if (!empty($toAdd)) {
             $this->notificationService->sendReviwerAssigned($task, array_values($toAdd));
@@ -205,7 +284,7 @@ class TaskService
             'from' => Auth::id(),
         ]);
 
-        $this->createLog("[COMMENT] task for {$task->issue}");
+        $this->createLog("[COMMENT] {$task->issue}");
 
         $this->notificationService->sentCommentNotification($task, Auth::user(), $pullRequest);
         return $pullRequest;
@@ -229,7 +308,7 @@ class TaskService
             'from'     => Auth::id(),
         ]);
 
-        $this->createLog("[REPLY] task for {$parentComment->task->issue}");
+        $this->createLog("[REPLY] {$parentComment->task->issue}");
 
         $this->notificationService->sendReplyNotification(
             $parentComment->task,
@@ -257,8 +336,6 @@ class TaskService
 
         return $taskReviewer;
     }
-
-
 
     private function createLog(string $description): void
     {

@@ -111,7 +111,6 @@ const openSkillModal = () => {
 
 const saveSkills = () => {
     skillForm.displayed_skills = selectedSkills.value;
-    // Sesuaikan nama route dengan backend Anda untuk menyimpan status skill ini
     skillForm.patch(route('profile.skills.update'), {
         preserveScroll: true,
         preserveState: true,
@@ -129,8 +128,19 @@ const getInitialSidebarState = () => {
     return true;
 };
 
+const removeRouterListener = router.on('start', () => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+        openMenus.value = false;
+        showProfilePanel.value = false;
+    }
+});
+
 const openMenus = ref(getInitialSidebarState());
-watch(openMenus, (newValue) => { localStorage.setItem('sidebarOpen', newValue); });
+watch(openMenus, (newValue) => { 
+    if (typeof window !== 'undefined' && window.innerWidth >= 768) {
+        localStorage.setItem('sidebarOpen', newValue); 
+    }
+});
 
 // Mutual Exclusivity & Body Scroll Lock
 watch(openMenus, (isOpen) => { if (isOpen) showProfilePanel.value = false; });
@@ -147,6 +157,7 @@ watch(showProfilePanel, (isOpen) => {
 
 onUnmounted(() => {
     document.body.style.overflow = '';
+    removeRouterListener();
 });
 
 const logout = () => { router.post(route('logout')); };
@@ -160,7 +171,7 @@ const getInitials = (name) => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-gradient-to-b from-[#F2F5FA] to-[#e0e7ff] dark:bg-[url('/background/dark_theme.jpg')] dark:bg-cover dark:bg-center dark:bg-fixed dark:bg-no-repeat font-sans text-slate-600 dark:text-slate-300 relative selection:bg-primary-500 selection:text-white transition-colors duration-500">
+    <div class="min-h-screen bg-[url('/background/BGlight-TM.jpg.jpeg')] bg-cover bg-center bg-fixed bg-no-repeat dark:bg-[url('/background/dark_theme.jpg')] dark:bg-cover dark:bg-center dark:bg-fixed dark:bg-no-repeat font-sans text-slate-600 dark:text-slate-300 relative selection:bg-primary-500 selection:text-white transition-colors duration-500">
         <Head :title="title" />
 
         <nav class="md:hidden fixed top-0 left-0 w-full bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-white/10 z-50 shadow-sm">
@@ -173,20 +184,25 @@ const getInitials = (name) => {
                     <span class="font-bold text-lg text-gray-800 dark:text-white tracking-tight">KNDI Task</span>
                 </div>
                 <button @click="showProfilePanel = true" class="relative">
-                     <div v-if="user.avatar" class="w-8 h-8 rounded-none overflow-hidden border border-white/50 shadow-sm bg-gray-50 dark:bg-slate-800">
+                    <div v-if="user.avatar" class="w-8 h-8 rounded-none overflow-hidden border border-white/50 shadow-sm bg-gray-50 dark:bg-slate-800">
                         <img :src="user.avatar" alt="Avatar" class="w-full h-full object-contain">
                     </div>
                     <div v-else class="w-8 h-8 rounded-none bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-primary-600 dark:text-primary-300 font-bold text-sm shadow-inner">
-                         {{ getInitials(user.name) }}
+                        {{ getInitials(user.name) }}
                     </div>
                 </button>
             </div>
 
-            <div v-if="openMenus" class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-white/20 dark:border-white/10 shadow-xl overflow-y-auto max-h-[80vh]">
-                <div class="flex flex-col p-4 space-y-4">
-                    <Menus :sidebarOpen="true" />
+            <Transition name="slide-fade">
+                <div 
+                    v-show="openMenus" 
+                    class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-white/20 dark:border-white/10 shadow-xl overflow-y-auto max-h-[80vh]"
+                >
+                    <div class="flex flex-col p-4 space-y-4">
+                        <Menus :sidebarOpen="true" />
+                    </div>
                 </div>
-            </div>
+            </Transition>
         </nav>
 
         <nav 
@@ -194,7 +210,7 @@ const getInitials = (name) => {
             :class="[
                 openMenus ? 'w-72' : 'w-24',
                 showProfilePanel ? '-translate-x-[200%]' : 'translate-x-0',
-                'bg-[#0d1b3e] dark:bg-slate-900/90 backdrop-blur-xl'
+                'bg-white/70 dark:bg-slate-900/90 backdrop-blur-xl'
             ]"
         >
             <div 
@@ -210,7 +226,7 @@ const getInitials = (name) => {
                 
                 <button 
                     @click="openMenus = !openMenus" 
-                    class="text-gray-300 hover:text-white transition focus:outline-none p-2 rounded-none"
+                    class="text-blue-900 dark:text-gray-300 hover:text-white transition focus:outline-none p-2 rounded-none"
                 >
                     <Hamburger :show="openMenus" />
                 </button>
@@ -498,4 +514,19 @@ const getInitials = (name) => {
 <style scoped>
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.slide-fade-enter-active,
+.slide-fade-leave-active {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    max-height: 80vh;
+    opacity: 1;
+    overflow: hidden;
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-8px);
+}
 </style>

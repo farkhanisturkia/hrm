@@ -2,22 +2,24 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Redis;
-use Inertia\Inertia;
 use App\Models\Log;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class LogController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
         $page = $request->query('page', 1);
-        $cacheKey = "user_logs_page_{$page}";
-        
-        $logs = \Cache::remember($cacheKey, 1800, function() use ($page) {
+        $logVersion = Cache::get('logs_cache_version', 1);
+
+        $cacheKey = "all_log_l{$logVersion}_pg{$page}";
+        $logs = Cache::remember($cacheKey, 1800, function () {
             return Log::with('user')
                 ->orderBy('created_at', 'desc')
                 ->paginate(10)

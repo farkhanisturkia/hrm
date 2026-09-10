@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('projects', function (Blueprint $table) {
             $table->id();
             $table->foreignId('project_owner_id')->constrained()->onDelete('cascade');
-            $table->string('name');
+            $table->string('name')->unique();
             $table->unsignedInteger('creator');
             $table->unsignedInteger('updater');
-            $table->boolean('isDeleted')->default(false);
+            $table->boolean('isActive')->default(true);
             $table->timestamps();
         });
     }

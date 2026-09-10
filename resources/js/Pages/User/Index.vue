@@ -1,14 +1,15 @@
 <script>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-import Trash from '@/Components/Icon/Trash.vue';
-import { data } from 'autoprefixer';
-import Pen from '@/Components/Icon/Pen.vue';
-
-// 1. Layout Persistent
 export default { layout: AuthenticatedLayout };
 </script>
 
 <script setup>
+import SwitchInput from '@/Components/SwitchInput.vue';
+import Hamburger from '@/Components/Icon/Hamburger.vue';
+import Close from '@/Components/Icon/Close.vue';
+import Search from '@/Components/Icon/Search.vue';
+import Gear from '@/Components/Icon/Gear.vue';
+import Pen from '@/Components/Icon/Pen.vue';
 import Plus from '@/Components/Icon/Plus.vue';
 import User from '@/Components/Icon/User.vue';
 import Pagination from '@/Components/Pagination.vue';
@@ -17,27 +18,40 @@ import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue'; 
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
-import DeleteConfirmationModal from '@/Components/DeleteConfirmationModal.vue';
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { ref, onMounted, computed } from 'vue';
 
 const props = defineProps({
   users: {}
 });
 
+const page = usePage();
+const queryParams = computed(() => {
+  const url = new URL(page.url, window.location.origin);
+  return Object.fromEntries(url.searchParams);
+});
+const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 640 : false;
+const options = ref(isDesktop);
+
+const handleOpenOptions = () => {
+  options.value = !options.value;
+};
+
+const role = computed(() => page.props.auth.user.role);
+
+const showButtons = ref(false);
 const openForm = ref(false);
 const isEditMode = ref(false);
 const isLoaded = ref(false);
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
-const confirmDeleteModal = ref(false)
-const userToDelete = ref(null)
+const search = ref(queryParams.value.search ?? '');
 
 const form = useForm({
   id: null,
   name: '',
   email: '',
-  role: 'pg',
+  role: 'engineer',
   is_wfa_allowed: false,
   password: '',
   password_confirmation: '',
@@ -66,9 +80,14 @@ const handleOpenForm = () => {
 const handleCloseForm = () => {
   openForm.value = false;
   isEditMode.value = false;
+  showButtons.value = false;
   form.reset();
   form.clearErrors();
   document.getElementById('face_photo').value = '';
+};
+
+const handleUpdateIsActive = (user) => {
+  router.post(route('user.changeIsActive', user));
 };
 
 const handleEdit = (id) => {
@@ -89,26 +108,8 @@ const handleEdit = (id) => {
   }
 };
 
-const openDeleteModal = (user) => {
-  userToDelete.value = user;
-  confirmDeleteModal.value = true;
-};
-
-const closeDeleteModal = () => {
-  userToDelete.value = null;
-  confirmDeleteModal.value = false;
-};
-
-const handleConfirmDelete = () => {
-  router.delete(route('user.destroy', userToDelete.value.id), {
-    onSuccess: () => closeDeleteModal(),
-  })
-};
-
 const toggleWfa = (user) => {
-  router.patch(route('user.toggleWfa', user.id), {
-    is_wfa_allowed: !user.is_wfa_allowed
-  }, {
+  router.patch(route('user.toggleWfa', user), {
     preserveScroll: true
   });
 };
@@ -135,22 +136,42 @@ const handleFileChange = (e) => {
 
 const formatRole = (role) => {
   const roles = {
-    'pm': 'Project Manager',
-    'pg': 'Programmer',
-    'co': 'Communicator',
-    'ds': 'Designer',
-    'other': 'Other'
+    'leader': 'Leader',
+    'engineer': 'Programmer',
+    'communicator': 'Communicator',
+    'designer': 'Designer',
+    'manager': 'Manager'
   };
   return roles[role] || role;
 };
+
+const handleFilter = () => {
+  const params = {};
+  
+  if (search.value?.trim()) {
+    params.search = search.value.trim();
+  }
+
+  router.get(route('user.list'), params, {
+    preserveState: true,
+    preserveScroll: true,
+  });
+};
+
+const visibleButtons = computed(() => {
+  return [
+    { action: 'add', icon: Plus, handler: handleOpenForm, text: 'New' },
+    { action: 'reset', icon: Close, handler: () => router.get(route('user.list')), text: 'Reset' }
+  ];
+});
 </script>
 
 <template>
   <Head title="Users" />
   
-  <div class="w-full">
+  <div class="w-full py-8">
     
-    <div class="mx-auto max-w-[100rem] sm:px-6 lg:px-0 mt-8">
+    <div class="mx-auto max-w-[100rem] sm:px-6 lg:px-0">
         <div
           class="flex justify-between px-6 py-4 items-center text-gray-800 dark:text-gray-200 
                  bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border border-white/40 dark:border-white/20 
@@ -158,28 +179,95 @@ const formatRole = (role) => {
           :class="{ 'translate-y-0 opacity-100': isLoaded, 'translate-y-8 opacity-0': !isLoaded }"
         >
           <div>
-            <h2 class="font-bold text-xl leading-tight text-gray-800 dark:text-slate-100 drop-shadow-sm">Users Management</h2>
+            <h2 class="font-bold text-xl leading-tight text-gray-800 dark:text-slate-100 drop-shadow-sm">Users</h2>
             <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">Manage system access and roles.</p>
           </div>
-          <div class="flex justify-end">
+
+          <div class="flex gap-4 justify-end">
             <button
+              @click="handleOpenOptions"
+              class="flex items-center gap-2 px-4 py-2 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-700/50 text-gray-700 dark:text-gray-200 rounded-lg shadow-sm border border-white/40 dark:border-white/10 backdrop-blur-sm transition-all"
+            >
+              <Gear class="w-4 h-4" />
+              <span class="hidden sm:inline font-medium text-sm">Options</span>
+            </button>
+
+            <button
+              v-if="['manager', 'leader', 'communicator'].includes(role)"
               @click="handleOpenForm"
-              class="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow-md hover:shadow-primary-500/30 transition-all duration-300 transform hover:scale-105"
+              class="hidden sm:flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow-md hover:shadow-primary-500/30 transition-all duration-300 transform hover:scale-105"
             >
               <Plus class="w-5 h-5" />
-              <span class="hidden sm:inline font-bold text-sm">Add New User</span>
+              <span class="hidden sm:inline font-bold text-sm">New User</span>
             </button>
           </div>
         </div>
     </div>
 
-    <button
-      @click="handleOpenForm"
-      class="fixed sm:hidden right-6 bottom-6 border border-white/20 rounded-full p-4 text-white bg-primary-600 shadow-xl z-40 transition-all duration-500 ease-out hover:scale-110 active:scale-95"
-      :class="{ 'translate-y-0 opacity-100 scale-100': isLoaded, 'translate-y-12 opacity-0 scale-75': !isLoaded }"
+    <div v-if="['manager', 'communicator'].includes(role)" class="fixed sm:hidden right-6 bottom-6 z-50 flex flex-col-reverse items-center gap-3">
+      <button
+        type="button"
+        @click="showButtons = !showButtons"
+        class="w-14 h-14 shrink-0 inline-flex items-center justify-center rounded-full text-white bg-primary-600 shadow-xl z-40 transition-all duration-300 hover:scale-105 active:scale-95 focus:outline-none"
+      >
+        <Hamburger v-model="showButtons" class="w-8 h-8 pointer-events-none" />
+      </button>
+
+      <TransitionGroup tag="div" name="button-list" class="flex flex-col-reverse items-center gap-3">
+        <button
+          v-for="(button, index) in visibleButtons"
+          v-show="showButtons"
+          :key="button.action"
+          @click="button.handler"
+          class="w-12 h-12 inline-flex items-center justify-center border border-white/20 rounded-full text-gray-700 dark:text-white bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-lg transition-all active:scale-95 origin-bottom"
+        >
+          <component :is="button.icon" class="w-5 h-5" />
+        </button>
+      </TransitionGroup>
+    </div>
+
+    <div
+      v-if="options"
+      class="w-full pt-4 sm:pt-6 transition-all duration-500 ease-out relative z-30"
+      :class="{ 'translate-y-0 opacity-100': isLoaded, 'translate-y-12 opacity-0': !isLoaded }"
     >
-      <Plus />
-    </button>
+      <div class="mx-auto max-w-[100rem] sm:px-6 lg:px-0">
+        <div class="relative z-20 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl p-4 rounded-xl shadow-lg border border-white/40 dark:border-white/10">
+          <div class="flex flex-col xl:flex-row gap-4 items-end justify-between w-full">
+            
+            <div class="flex flex-col sm:flex-row gap-4 w-full xl:w-auto flex-1 items-end">
+              <div class="w-full sm:w-1/2 xl:w-72">
+                <label class="text-[10px] font-bold text-gray-500 dark:text-slate-400 mb-1 block uppercase tracking-wider">Search</label>
+                <div class="relative w-full group">
+                  <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                    <Search class="h-4 w-4 text-gray-400 group-focus-within:text-primary-500 transition-colors" />
+                  </div>
+                  <TextInput
+                    id="search"
+                    type="text"
+                    class="block pl-10 w-full h-[42px]"
+                    v-model="search"
+                    placeholder="Search name..."
+                    @keydown.enter="handleFilter"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div class="hidden sm:flex flex-wrap sm:flex-nowrap justify-end gap-3 w-full xl:w-auto">
+              <button 
+                @click="() => router.get(route('user.list'))"
+                class="w-full sm:w-auto flex items-center justify-center gap-2 h-[42px] px-4 py-2 text-sm font-bold rounded-lg bg-gray-100 dark:bg-slate-700/50 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-slate-600/50 transition-all border border-gray-200 dark:border-slate-600/50 shadow-sm"
+              >
+                <Close class="w-4 h-4" />
+                <span>Reset</span>
+              </button>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
 
     <div v-if="openForm" class="fixed inset-0 z-[100] px-4 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity">
       <div class="bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl border border-white/50 dark:border-white/10 rounded-lg shadow-2xl max-w-lg w-full p-8 relative animate-in fade-in zoom-in duration-300">
@@ -213,11 +301,11 @@ const formatRole = (role) => {
             <InputLabel for="role" value="Role" />
             <div class="relative">
                 <select id="role" v-model="form.role" class="mt-1 block w-full border-gray-300 dark:border-white/10 bg-white/50 dark:bg-slate-800/50 dark:text-slate-200 focus:border-primary-500 focus:ring-primary-500 rounded-lg shadow-sm backdrop-blur-sm transition cursor-pointer py-2.5">
-                  <option value="pm">Project Manager</option>
-                  <option value="pg">Programmer</option>
-                  <option value="ds">Designer</option>
-                  <option value="co">Communicator</option>
-                  <option value="other">Other</option>
+                  <option value="leader">Leader</option>
+                  <option value="engineer">Programmer</option>
+                  <option value="designer">Designer</option>
+                  <option value="communicator">Communicator</option>
+                  <option value="manager">Manager</option>
                 </select>
             </div>
           </div>
@@ -301,7 +389,12 @@ const formatRole = (role) => {
                   <th class="p-5 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider">Email</th>
                   <th class="p-5 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider">Role</th>
                   <th class="p-5 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider">Photo</th>
-                  <th class="p-5 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider text-center">WFA</th>
+                  <th v-if="['manager', 'leader'].includes(role)" class="px-4 py-3 text-center font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider whitespace-nowrap">
+                    WFA
+                  </th>
+                  <th v-if="['manager', 'leader'].includes(role)" class="px-4 py-3 text-center font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider whitespace-nowrap">
+                    Is Active
+                  </th>
                   <th class="p-5 text-center font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider">Action</th>
                 </tr>
               </thead>
@@ -320,11 +413,11 @@ const formatRole = (role) => {
                   <td class="p-5 align-middle text-sm text-gray-600 dark:text-slate-400 font-mono">{{ user.email }}</td>
                   <td class="p-5 align-middle">
                      <span :class="{
-                        'bg-purple-100/50 text-purple-700 border-purple-200/50 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800/30': user.role === 'pm',
-                        'bg-primary-100/50 text-primary-700 border-primary-200/50 dark:bg-primary-900/30 dark:text-primary-400 dark:border-primary-800/30': user.role === 'pg',
-                        'bg-pink-100/50 text-pink-700 border-pink-200/50 dark:bg-pink-900/30 dark:text-pink-400 dark:border-pink-800/30': user.role === 'ds',
-                        'bg-orange-100/50 text-orange-700 border-orange-200/50 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800/30': user.role === 'co',
-                        'bg-gray-100/50 text-gray-700 border-gray-200/50 dark:bg-slate-800/30 dark:text-slate-300 dark:border-slate-700/30': user.role === 'other',
+                        'bg-purple-100/50 text-purple-700 border-purple-200/50 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800/30': user.role === 'leader',
+                        'bg-primary-100/50 text-primary-700 border-primary-200/50 dark:bg-primary-900/30 dark:text-primary-400 dark:border-primary-800/30': user.role === 'engineer',
+                        'bg-pink-100/50 text-pink-700 border-pink-200/50 dark:bg-pink-900/30 dark:text-pink-400 dark:border-pink-800/30': user.role === 'designer',
+                        'bg-orange-100/50 text-orange-700 border-orange-200/50 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800/30': user.role === 'communicator',
+                        'bg-gray-100/50 text-gray-700 border-gray-200/50 dark:bg-slate-800/30 dark:text-slate-300 dark:border-slate-700/30': user.role === 'manager',
                      }" class="px-3 py-1 rounded-full text-xs font-bold border backdrop-blur-sm shadow-sm">
                         {{ formatRole(user.role) }}
                      </span>
@@ -341,14 +434,11 @@ const formatRole = (role) => {
                       {{ user.face_embedding ? 'Available' : 'Not Available' }}
                     </span>
                   </td>
-                  <td class="p-5 align-middle text-center">
-                    <label class="flex items-center justify-center cursor-pointer tooltip-trigger" title="Toggle Akses WFA">
-                      <div class="relative">
-                          <input type="checkbox" class="sr-only" :checked="user.is_wfa_allowed" @change="toggleWfa(user)">
-                          <div class="block w-10 h-5 rounded-full transition-colors duration-300 shadow-inner" :class="user.is_wfa_allowed ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-slate-600'"></div>
-                          <div class="dot absolute left-1 top-1 bg-white w-3 h-3 rounded-full transition-transform duration-300 shadow-sm" :class="{'transform translate-x-5': user.is_wfa_allowed}"></div>
-                      </div>
-                    </label>
+                  <td v-if="['manager', 'leader'].includes(role)" class="px-4 py-3 align-middle">
+                    <SwitchInput v-slot:default v-model="user.is_wfa_allowed" @update:modelValue="toggleWfa(user)" />
+                  </td>
+                  <td v-if="['manager', 'leader'].includes(role)" class="px-4 py-3 align-middle">
+                    <SwitchInput v-slot:default v-model="user.isActive" @update:modelValue="handleUpdateIsActive(user)" />
                   </td>
                   <td class="p-5 align-middle">
                     <div class="flex gap-3 justify-center items-center text-sm">
@@ -357,13 +447,6 @@ const formatRole = (role) => {
                         class="p-1.5 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition tooltip-trigger" title="Edit"
                       >
                           <Pen class="w-5 h-5" />
-                      </button>
-                      <button 
-                        @click.prevent="openDeleteModal(user)" 
-                        class="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition tooltip-trigger" 
-                        title="Delete"
-                      >
-                        <Trash class="w-5 h-5" />
                       </button>
                     </div>
                   </td>
@@ -380,13 +463,6 @@ const formatRole = (role) => {
 
       </div>
     </div>
-    <DeleteConfirmationModal
-      :show="confirmDeleteModal"
-      title="Delete User"
-      :message="`Are you sure you want to delete user ${userToDelete?.name}?`"
-      @close="closeDeleteModal"
-      @confirm="handleConfirmDelete"
-    />
   </div>
 </template>
 

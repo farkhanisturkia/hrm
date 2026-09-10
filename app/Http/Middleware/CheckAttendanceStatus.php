@@ -13,7 +13,7 @@ class CheckAttendanceStatus
     {
         $isAttendanceEnabled = Cache::get('attendance_enabled', true);
         $user = $request->user();
-        if (!$isAttendanceEnabled && (!$user || $user->role !== 'other')) {
+        if (!$isAttendanceEnabled && (!$user || $user->role !== 'manager')) {
             return redirect()->route('dashboard')->with('error', 'Fitur absensi sedang dinonaktifkan oleh Manager.');
         }
         return $next($request);

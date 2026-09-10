@@ -2,100 +2,104 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\AttendanceMultiSheetExport;
 use App\Models\Attendance;
 use App\Models\User;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\Redis;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
-use Inertia\Inertia;
 use Carbon\Carbon;
-use App\Exports\AttendanceMultiSheetExport;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+use Inertia\Inertia;
+use Inertia\Response;
 use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AttendanceController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): Response
     {
         $query = $request->query();
         $page = $request->query('page', 1);
-        $cacheKey = "attendance_u" . ($query['user_id'] ?? 'all') . 
-                    "_from_" . ($query['from'] ?? 'start') . 
-                    "_to_" . ($query['to'] ?? 'end') . 
-                    "_p{$page}";
+        
+        $attendanceVersion = Cache::get('attendances_cache_version', 1);
+        $userId = $query['user_id'] ?? 'all';
+        $fromStr = $query['from'] ?? 'start';
+        $toStr = $query['to'] ?? 'end';
 
-        $attendances = \Cache::remember($cacheKey, 1800, function() use ($query) {
+        $cacheKey = "all_attendance_a{$attendanceVersion}_u{$userId}_from{$fromStr}_to{$toStr}_pg{$page}";
+        $attendances = Cache::remember($cacheKey, 1800, function () use ($query) {
             $attendanceQuery = Attendance::with('user')->orderBy('check_in_time', 'desc');
 
-            if(isset($query['user_id'])) {
+            if (isset($query['user_id'])) {
                 $attendanceQuery->where('user_id', $query['user_id']);
             }
 
-            if(!empty($query['from']) && !empty($query['to'])) {
+            if (!empty($query['from']) && !empty($query['to'])) {
                 try {
                     $from = Carbon::createFromFormat('d-m-Y', $query['from'])->startOfDay();
                     $to = Carbon::createFromFormat('d-m-Y', $query['to'])->endOfDay();
                     $attendanceQuery->whereBetween('check_in_time', [$from, $to]);
-                } catch (\Exception $err) {}
+                } catch (\Exception $err) {
+                    // Ignore format error and fallback to default query
+                }
             }
 
             return $attendanceQuery->paginate(10)->withQueryString();
         });
 
-        $users = \Cache::remember('all_users_list', 1800, function() {
+        $userVersion = Cache::get('users_cache_version', 1);
+        $users = Cache::remember("all_user_u{$userVersion}", 1800, function () {
             return User::orderBy('name')->get();
         });
 
         return Inertia::render('Attendance/Index', compact('attendances', 'users'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'image' => 'required|string',
-            'type' => 'required|in:check_in,check_out',
-            'latitude' => 'nullable|numeric',
+            'image'     => 'required|string',
+            'type'      => 'required|in:check_in,check_out',
+            'latitude'  => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
             'work_type' => 'required|in:wfo,wfa', 
         ]);
 
         if (!$request->latitude || !$request->longitude) {
             return response()->json([
-                'status' => 'error',
-                'message' => 'Lokasi tidak ditemukan. Harap izinkan akses lokasi (GPS) pada browser/perangkat Anda.'
+                'status'  => 'error',
+                'message' => 'Location not found. Please allow location access (GPS) on your browser or device.'
             ], 400);
         }
 
         $verification = $this->verifyFace($request->image);
 
-        // --- PENGATURAN COOLDOWN UNTUK SEMUA STATUS ---
-        // Gunakan user_id jika dikenali, jika error/wajah tidak dikenali gunakan IP Address device
         $identifier = $verification['user_id'] ?? $request->ip();
         $cooldownKey = 'attendance_cooldown_' . $identifier;
 
         if (Cache::has($cooldownKey)) {
             return response()->json([
-                'status' => 'cooldown',
-                'message' => 'Harap tunggu sebentar sebelum melakukan absensi lagi.',
+                'status'  => 'cooldown',
+                'message' => 'Please wait a moment before checking in again.',
             ], 429);
         }
 
-        // Langsung set cooldown 2 detik di sini agar mencakup SEMUA status di bawahnya (Sukses, Error, Sudah Absen, dll)
         Cache::put($cooldownKey, true, 2);
-        // ----------------------------------------------
 
         if (!$verification || !isset($verification['success'])) {
             return response()->json([
-                'status' => 'error',
-                'message' => 'Proses verifikasi gagal dijalankan'
+                'status'  => 'error',
+                'message' => 'The verification process failed to run'
             ], 500);
         }
 
         if (!$verification['success']) {
             return response()->json([
-                'status' => 'error',
+                'status'  => 'error',
                 'message' => $verification['message'],
             ], 401);
         }
@@ -104,39 +108,36 @@ class AttendanceController extends Controller
 
         if (!$user) {
             return response()->json([
-                'status' => 'error',
-                'message' => 'User dengan id ' . $verification['user_id'] . ' tidak ditemukan di database',
+                'status'  => 'error',
+                'message' => 'The user with ID' . $verification['user_id'] . ' was not found in the database',
             ], 404);
         }
 
         if ($request->work_type === 'wfa') {
             if (!$user->is_wfa_allowed) {
                 return response()->json([
-                    'status' => 'error',
-                    'message' => 'Anda tidak memiliki akses absen WFA. Harap hubungi Manager Anda.'
+                    'status'  => 'error',
+                    'message' => 'You do not have access to the WFA attendance system. Please contact your manager.'
                 ], 403);
             }
         } else {
-            // Pengecekan jika user punya akses WFA tapi malah milih WFO
             if ($user->is_wfa_allowed) {
                 return response()->json([
-                    'status' => 'error',
-                    'message' => 'Anda telah diberikan akses WFA. Harap ubah tipe absensi Anda menjadi WFA.'
+                    'status'  => 'error',
+                    'message' => 'You have been granted WFA access. Please change your attendance type to WFA.'
                 ], 403);
             }
 
-            // Koordinat Kantor: 7°15'53.9"S 112°44'50.1"E (dalam desimal)
             $officeLat = -7.2649722;
             $officeLon = 112.7472500;
-            $maxDistance = 100; // Jangkauan maksimal dalam meter
+            $maxDistance = 100;
 
-            // Hitung jarak user saat ini dengan lokasi kantor
             $distance = $this->calculateDistance($request->latitude, $request->longitude, $officeLat, $officeLon);
 
             if ($distance > $maxDistance) {
                 return response()->json([
-                    'status' => 'error',
-                    'message' => 'Anda berstatus WFO tapi berada di luar jangkauan kantor (Jarak: ' . round($distance) . ' meter). Absensi WFO hanya bisa dilakukan dalam radius ' . $maxDistance . ' meter.'
+                    'status'  => 'error',
+                    'message' => 'Your status is WFO, but you are outside the office`s range (Distance: ' . round($distance) . ' meters). WFO check-ins can only be made within a radius of ' . $maxDistance . ' meters.'
                 ], 403);
             }
         }
@@ -144,46 +145,44 @@ class AttendanceController extends Controller
         $address = $this->getAddress($request->latitude, $request->longitude);
         $today = Carbon::today();
         $attendance = Attendance::where('user_id', $user->id)
-                                ->whereDate('check_in_time', $today)
-                                ->first();
+            ->whereDate('check_in_time', $today)
+            ->first();
 
-        $confidence =  $verification['confidence'];
+        $confidence = $verification['confidence'];
 
         if ($request->type === 'check_in') {
             if ($attendance) {
                 $now = Carbon::parse($attendance->check_in_time)->format('H:i:s');
 
                 return response()->json([
-                    'status' => 'error',
-                    'name' => $user->name,
-                    'message' => "Anda Sudah Melakukan Check-In Pada Pukul $now"
+                    'status'  => 'error',
+                    'name'    => $user->name,
+                    'message' => 'You Have Already Checked In at ' . $now
                 ]);
             }
 
             Attendance::create([
-                'user_id' => $user->id,
-                'check_in_time' => Carbon::now(),
+                'user_id'              => $user->id,
+                'check_in_time'        => Carbon::now(),
                 'check_in_confidence' => $confidence,
-                'address' => $address,
-                'latitude' => $request->latitude,
-                'longitude' => $request->longitude,
-                'work_type' => $request->work_type,
+                'address'              => $address,
+                'latitude'             => $request->latitude,
+                'longitude'            => $request->longitude,
+                'work_type'            => $request->work_type,
             ]);
 
-            \Cache::flush();
-
             return response()->json([
-                'status' => 'success',
-                'name' => $user->name,
+                'status'    => 'success',
+                'name'      => $user->name,
                 'work_type' => $request->work_type,
-                'message' => "Berhasil Check-In (" . strtoupper($request->work_type) . ")"
+                'message'   => 'Check-In Successful (' . strtoupper($request->work_type) . ')'
             ]);
         } else {
             if (!$attendance) {
                 return response()->json([
-                    'status' => 'error',
-                    'name' => $user->name,
-                    'message' => "Anda Belum Melakukan Check-In!",
+                    'status'  => 'error',
+                    'name'    => $user->name,
+                    'message' => "You Haven't Checked In Yet!",
                 ]);
             }
 
@@ -191,38 +190,37 @@ class AttendanceController extends Controller
                 $now = Carbon::parse($attendance->check_out_time)->format('H:i:s');
 
                 return response()->json([
-                    'status' => 'error',
-                    'name' => $user->name,
-                    'message' => "Anda Sudah Melakukan Check-Out Pada Pukul $now",
+                    'status'  => 'error',
+                    'name'    => $user->name,
+                    'message' => 'You have already checked out at ' . $now,
                 ]);
             }
 
             $attendance->update([
-                'check_out_time' => Carbon::now(),
+                'check_out_time'        => Carbon::now(),
                 'check_out_confidence' => $confidence,
-                'address' => $address,
-                'latitude' => $request->latitude,
-                'longitude' => $request->longitude,
+                'address'              => $address,
+                'latitude'             => $request->latitude,
+                'longitude'            => $request->longitude,
             ]);
 
             return response()->json([
-                'status' => 'success',
-                'name' => $user->name,
-                'message' => "Berhasil Check-Out",
+                'status'  => 'success',
+                'name'    => $user->name,
+                'message' => "Checkout Successful",
             ]);
         }
     }
 
-    public function export(Request $request)
+    public function export(Request $request): BinaryFileResponse
     {
         $query = $request->query();
-
         $isSummary = isset($query['summary']) && filter_var($query['summary'], FILTER_VALIDATE_BOOLEAN);
 
         $filename = $isSummary ? 'summary_attendance.xlsx' : 'attendance_report.xlsx';
         
         if (isset($query['user_id'])) {
-            $user = User::where('id', $query['user_id'])->first();
+            $user = User::find($query['user_id']);
             if ($user) {
                 $prefix = str_replace(' ', '_', $user->name);
                 $filename = $isSummary 
@@ -234,59 +232,12 @@ class AttendanceController extends Controller
         return Excel::download(new AttendanceMultiSheetExport($query), $filename);
     }
 
-    private function verifyFace($imageBase64)
+    public function toggleStatus(Request $request): RedirectResponse
     {
-        $host = env('PYTHON_SERVICE');
-        $port = env('PYTHON_SERVICE_PORT');
+        /** @var \App\Models\User $authUser */
+        $authUser = Auth::user();
 
-        $users = User::whereNotNull('face_embedding')->get(['id', 'name', 'face_embedding']);
-
-        $userData = $users->map(function ($u) {
-            return [
-                'id' => $u->id,
-                'name' => $u->name,
-                'embedding' => $u->face_embedding,
-            ];
-        });
-        
-        try {
-            $imageRaw = $imageBase64;
-            if (str_contains($imageRaw, ',')) {
-                $imageRaw = explode(',', $imageRaw)[1];
-            }
-
-            $response = Http::post("http://{$host}:{$port}/attendance", [
-                'image' => $imageBase64,
-                'users' => $userData, 
-            ]);
-
-            $result = $response->json();
-
-            if ($response->successful() && isset($result['match'])) {
-                return [
-                    'success' => $result['match'],
-                    'user_id' => $result['message'] ?? null,
-                    'confidence' => $result['confidence'] ?? 0
-                ];
-            }
-
-            return [
-                'success' => false, 
-                'message' => $result['message'] ?? 'Wajah tidak dikenali atau error dari server Python',
-                'confidence' => 0
-            ];
-        } catch (\Exception $err) {
-            return [
-                'success' => false, 
-                'message' => 'Gagal koneksi ke server: ' . $err->getMessage(),
-                'confidence' => 0
-            ];
-        }
-    }
-
-    public function toggleStatus(Request $request)
-    {
-        if (auth()->user()->role !== 'other') {
+        if ($authUser->role !== 'manager') {
             abort(403, 'Unauthorized action.');
         }
 
@@ -296,12 +247,55 @@ class AttendanceController extends Controller
 
         Cache::forever('attendance_enabled', $request->is_enabled);
 
-        $status = $request->is_enabled ? 'diaktifkan' : 'dinonaktifkan';
+        $status = $request->is_enabled ? 'enabled' : 'disabled';
         
-        return back()->with('success', "Fitur absensi berhasil $status.");
+        return back()->with('success', 'The attendance feature was successful' . $status . '.');
     }
 
-    private function getAddress($latitude, $longitude)
+    private function verifyFace(string $imageBase64): array
+    {
+        $host = env('PYTHON_SERVICE');
+        $port = env('PYTHON_SERVICE_PORT');
+
+        $users = User::whereNotNull('face_embedding')->get(['id', 'name', 'face_embedding']);
+
+        $userData = $users->map(fn($u) => [
+            'id'        => $u->id,
+            'name'      => $u->name,
+            'embedding' => $u->face_embedding,
+        ]);
+        
+        try {
+            $response = Http::post("http://{$host}:{$port}/attendance", [
+                'image' => $imageBase64,
+                'users' => $userData, 
+            ]);
+
+            $result = $response->json();
+
+            if ($response->successful() && isset($result['match'])) {
+                return [
+                    'success'    => $result['match'],
+                    'user_id'    => $result['message'] ?? null,
+                    'confidence' => $result['confidence'] ?? 0
+                ];
+            }
+
+            return [
+                'success'    => false, 
+                'message'    => $result['message'] ?? 'Unrecognized face or Python server error',
+                'confidence' => 0
+            ];
+        } catch (\Exception $err) {
+            return [
+                'success'    => false, 
+                'message'    => 'Failed to connect to the server: ' . $err->getMessage(),
+                'confidence' => 0
+            ];
+        }
+    }
+
+    private function getAddress(?float $latitude, ?float $longitude): ?string
     {
         if (!$latitude || !$longitude) {
             return null;
@@ -312,26 +306,25 @@ class AttendanceController extends Controller
                 'User-Agent' => 'AttendanceApp/1.0'
             ])->timeout(5)->get("https://nominatim.openstreetmap.org/reverse", [
                 'format' => 'jsonv2',
-                'lat' => $latitude,
-                'lon' => $longitude,  
+                'lat'    => $latitude,
+                'lon'    => $longitude,  
             ]);
 
             if ($response->successful()) {
-                return $response->json()['display_name'] ?? 'Alamat tidak ditemukan';
+                return $response->json()['display_name'] ?? 'Address not found';
             }
         } catch (\Exception $err) {
-            \Log::error("Geocoding error: " . $err->getMessage());
+            Log::error("Geocoding error: " . $err->getMessage());
             return null;
         }
         
         return null;
     }
 
-    private function calculateDistance($lat1, $lon1, $lat2, $lon2)
+    private function calculateDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
     {
-        $earthRadius = 6371000; // Radius bumi dalam satuan meter
+        $earthRadius = 6371000;
 
-        // Konversi koordinat dari derajat ke radian
         $latFrom = deg2rad($lat1);
         $lonFrom = deg2rad($lon1);
         $latTo = deg2rad($lat2);

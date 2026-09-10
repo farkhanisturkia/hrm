@@ -22,23 +22,23 @@ const userRole = computed(() => page.props.auth.user.role);
 
 // 1. Definisi Menu
 const rawMenuItems = computed(() => [
-    { label: "Dashboard", route: "dashboard", icon: News, show: ["other", "pm"].includes(userRole.value), pattern: "dashboard" },
-    { label: "Users", route: "user.list", icon: User, show: ["other", "pm"].includes(userRole.value), pattern: "user.list" },
-    { label: "Project Owner", route: "projectOwner.list", icon: Build, show: ["other", "pm", "co"].includes(userRole.value), pattern: "projectOwner.list" },
+    { label: "Dashboard", route: "dashboard", icon: News, show: ["manager", "leader"].includes(userRole.value), pattern: "dashboard" },
+    { label: "Users", route: "user.list", icon: User, show: ["manager", "leader"].includes(userRole.value), pattern: "user.list" },
+    { label: "Project Owner", route: "projectOwner.list", icon: Build, show: ["manager", "leader", "communicator"].includes(userRole.value), pattern: "projectOwner.list" },
     { label: "Projects", route: "project.list", icon: Folder, show: true, pattern: "project.list" },
     { label: "Tasks", route: "task.list", icon: Document, show: true, pattern: ["task.list", "task.show"] },
     { label: "Logtime", route: "logtime.list", icon: Clock, show: true, pattern: "logtime.list" },
-    { label: "Program Log", route: "log.list", icon: Warning, show: userRole.value === "pm", pattern: "log.list" },
+    { label: "Program Log", route: "log.list", icon: Warning, show: userRole.value === "leader", pattern: "log.list" },
     { label: "Skill", route: "skill.list", icon: Book, show: true, pattern: "skill.list" },
-    { label: "Attendance", route: "attendance", icon: UserPlus, show: userRole.value === "other", pattern: "attendance" },
-    { label: "Import", route: "import.index", icon: Cloud, show: ["other", "co"].includes(userRole.value), pattern: "import.index" },
+    { label: "Attendance", route: "attendance", icon: UserPlus, show: userRole.value === "manager", pattern: "attendance" },
+    { label: "Import", route: "import.index", icon: Cloud, show: ["manager", "communicator"].includes(userRole.value), pattern: "import.index" },
 ]);
 
 const visibleMenuItems = computed(() => rawMenuItems.value.filter(item => item.show));
 
 // 2. Logic Active Index (Reactive)
 const activeIndex = computed(() => {
-    const url = page.url; 
+    page.url; 
     return visibleMenuItems.value.findIndex(item => {
         if (Array.isArray(item.pattern)) {
             return item.pattern.some(p => route().current(p));
@@ -120,8 +120,8 @@ const onLeave = () => {
                 class="group relative z-10 flex items-center h-[50px] font-medium no-underline transition-all duration-300"
                 :class="[
                     index === activeIndex
-                        ? 'text-[#0d1b3e] dark:text-white/80 font-bold' 
-                        : 'text-slate-400 hover:text-white dark:text-slate-500 dark:hover:text-white/80',
+                        ? 'text-blue-900 dark:text-white/80 font-bold' 
+                        : 'text-blue-600 hover:text-blue-800 dark:text-slate-500 dark:hover:text-white/80',
 
                     index !== activeIndex 
                         ? [
@@ -136,11 +136,12 @@ const onLeave = () => {
                 ]"
             >
                 <div 
-                    class="flex items-center justify-center shrink-0 transition-all duration-300 text-gray-400"
+                    class="flex items-center justify-center shrink-0 transition-all duration-300"
                     :class="[
                         index === activeIndex 
-                        ? 'scale-110 text-primary-600 dark:text-white/80' 
-                        : 'group-hover:scale-110',
+                            ? 'scale-110 text-blue-900 dark:text-white/80 font-bold' 
+                            : 'text-blue-600 hover:text-blue-800 dark:text-slate-500 dark:hover:text-white/80 group-hover:scale-110',
+
                         sidebarOpen ? 'ml-9 mr-3' : 'w-full'
                     ]"
                 >
@@ -160,11 +161,11 @@ const onLeave = () => {
         <Teleport to="body">
             <div
                 v-if="hoveredMenu && !sidebarOpen"
-                class="fixed bg-[#0d1b3e]/90 dark:bg-slate-900/95 backdrop-blur-md text-white text-sm font-bold px-3 py-1.5 rounded-lg pointer-events-none whitespace-nowrap shadow-xl z-[9999] border border-white/20 dark:border-white/10 transition-opacity duration-200"
+                class="fixed bg-[#2876BC]/90 dark:bg-slate-900/95 backdrop-blur-md text-white text-sm font-bold px-3 py-1.5 rounded-lg pointer-events-none whitespace-nowrap shadow-xl z-[9999] border border-white/20 dark:border-white/10 transition-opacity duration-200"
                 :style="{ top: tooltipPos.top + 'px', left: tooltipPos.left + 'px', transform: 'translateY(-50%)' }"
             >
                 {{ hoveredMenu }}
-                <div class="absolute top-1/2 -left-1 -translate-y-1/2 border-4 border-transparent border-r-[#0d1b3e]/90 dark:border-r-slate-900/95"></div>
+                <div class="absolute top-1/2 -left-1 -translate-y-1/2 border-4 border-transparent border-r-[#2876BC]/90 dark:border-r-slate-900/95"></div>
             </div>
         </Teleport>
 

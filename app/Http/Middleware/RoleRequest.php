@@ -24,10 +24,12 @@ class RoleRequest
             };
         };
 
-        if (in_array($user->role, ['pg', 'co', 'ds'])) {
+        if (in_array($user->role, ['engineer', 'communicator', 'designer'])) {
             return to_route('task.list');
-        } elseif (in_array($user->role, ['other', 'pm'])) {
+        } elseif (in_array($user->role, ['manager', 'leader'])) {
             return to_route('dashboard');
         };
+
+        abort(403, 'Unauthorized action.');
     }
 }

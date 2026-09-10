@@ -11,14 +11,14 @@ const emit = defineEmits(['close']);
 
 const props = defineProps({
     task: {},
-    pg: {},
+    engineer: {},
 });
 
 const availableReviewers = computed(() => {
     const assignProgrammerId = props.task?.programmer || [];
 
-    if (Array.isArray(props.pg)) {
-        return props.pg.filter(user => !assignProgrammerId.includes(user.id));
+    if (Array.isArray(props.engineer)) {
+        return props.engineer.filter(user => !assignProgrammerId.includes(user.id));
     }
     return [];
 });

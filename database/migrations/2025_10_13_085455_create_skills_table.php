@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
             $table->string('skill');
+            $table->boolean('is_displayed')->default(false);
             $table->timestamps();
         });
     }

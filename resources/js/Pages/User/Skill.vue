@@ -1,7 +1,5 @@
 <script>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-
-// 1. Layout sudah didaftarkan di sini (Persistent)
 export default { layout: AuthenticatedLayout };
 </script>
 
@@ -40,8 +38,9 @@ const queryParams = computed(() => {
   return Object.fromEntries(url.searchParams);
 });
 
-const options = ref(['other', 'co'].includes(role.value) ? true : false);
-const id = ref(Number(queryParams.value.user_id) || null);
+const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 640 : false;
+const options = ref(isDesktop);
+const id = ref(queryParams.value.user_id ? Number(queryParams.value.user_id) : '');
 
 const handleOpenOptions = () => {
   options.value = !options.value;
@@ -53,6 +52,7 @@ const handleOpenForm = () => {
 
 const handleCloseForm = () => {
   openForm.value = false;
+  showButtons.value = false;
 };
 
 const openDeleteModal = (skill) => {
@@ -66,6 +66,8 @@ const closeDeleteModal = () => {
 }
 
 const handleConfirmDelete = (id) => {
+  if (!skillToDelete.value) return;
+
   router.delete(route('skill.destroy', skillToDelete.value.id), {
     onSuccess: () => closeDeleteModal(),
   });
@@ -113,47 +115,47 @@ watch(id, (newValue) => {
           :class="{ 'translate-y-0 opacity-100': isLoaded, 'translate-y-8 opacity-0': !isLoaded }"
         >
           <div>
-            <h2 class="font-bold text-xl leading-tight text-gray-800 dark:text-slate-100 drop-shadow-sm">
-              Skills Matrix
-            </h2>
+            <h2 class="font-bold text-xl leading-tight text-gray-800 dark:text-slate-100 drop-shadow-sm">Skills</h2>
             <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">Manage user technical skills.</p>
           </div>
           
           <div class="flex gap-4 justify-end">
             <button
-              v-if="['other', 'co'].includes(role)"
+              v-if="['manager', 'communicator'].includes(role)"
               @click="handleOpenOptions"
               class="flex items-center gap-2 px-4 py-2 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-700/50 text-gray-700 dark:text-gray-200 rounded-lg shadow-sm border border-white/40 dark:border-white/10 backdrop-blur-sm transition-all"
             >
               <Gear class="w-4 h-4" />
               <span class="hidden sm:inline font-medium text-sm">Options</span>
             </button>
+
             <button
               @click="handleOpenForm"
-              class="flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow-md hover:shadow-primary-500/30 transition-all duration-300 transform hover:scale-105"
+              class="hidden sm:flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow-md hover:shadow-primary-500/30 transition-all duration-300 transform hover:scale-105"
             >
               <Plus class="w-5 h-5" />
-              <span class="hidden sm:inline font-bold text-sm">Add Skill</span>
+              <span class="hidden sm:inline font-bold text-sm">New Skill</span>
             </button>
           </div>
         </div>
     </div>
 
-    <div v-if="['other', 'co'].includes(role)" class="fixed sm:hidden right-6 bottom-6 z-50">
-      <div
-        class="shrink-0 inline-flex items-center justify-center p-3 rounded-full text-white bg-primary-600 shadow-xl z-40 transition-all duration-500 hover:scale-110 active:scale-95"
+    <div v-if="['manager', 'communicator'].includes(role)" class="fixed sm:hidden right-6 bottom-6 z-50 flex flex-col-reverse items-center gap-3">
+      <button
+        type="button"
         @click="showButtons = !showButtons"
+        class="w-14 h-14 shrink-0 inline-flex items-center justify-center rounded-full text-white bg-primary-600 shadow-xl z-40 transition-all duration-300 hover:scale-105 active:scale-95 focus:outline-none"
       >
-        <Hamburger v-model="showButtons" class="w-6 h-6" />
-      </div>
-      <TransitionGroup tag="div" name="button-list">
+        <Hamburger v-model="showButtons" class="w-8 h-8 pointer-events-none" />
+      </button>
+
+      <TransitionGroup tag="div" name="button-list" class="flex flex-col-reverse items-center gap-3">
         <button
           v-for="(button, index) in visibleButtons"
           v-show="showButtons"
           :key="button.action"
           @click="button.handler"
-          class="fixed right-6 border border-white/20 rounded-full p-3 text-gray-700 dark:text-white bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-lg"
-          :style="{ bottom: `${80 + (index) * 60}px` }"
+          class="w-12 h-12 inline-flex items-center justify-center border border-white/20 rounded-full text-gray-700 dark:text-white bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-lg transition-all active:scale-95 origin-bottom"
         >
           <component :is="button.icon" class="w-5 h-5" />
         </button>
@@ -174,7 +176,7 @@ watch(id, (newValue) => {
     </div>
 
     <div
-      v-if="options"
+      v-if="options && ['manager', 'communicator'].includes(role)"
       class="w-full pt-4 sm:pt-6 transition-all duration-500 ease-out relative z-30"
       :class="{ 'translate-y-0 opacity-100': isLoaded, 'translate-y-12 opacity-0': !isLoaded }"
     >
@@ -198,7 +200,7 @@ watch(id, (newValue) => {
               </div>
             </div>
 
-            <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto items-end">
+            <div class="hidden sm:flex flex-col md:flex-row gap-3 w-full md:w-auto items-end">
               <button
                 @click="exportSkill"
                 class="w-full md:w-auto flex items-center justify-center gap-2 h-11 px-4 py-2 text-sm font-bold rounded-lg bg-primary-600 hover:bg-primary-500 text-white transition-all shadow-md"

@@ -12,7 +12,7 @@ class ProjectOwner extends Model
         'name',
         'creator',
         'updater',
-        'isDeleted'
+        'isActive'
     ];
 
     public function projects()

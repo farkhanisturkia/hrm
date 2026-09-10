@@ -14,7 +14,7 @@ const props = defineProps({
 const form = useForm({
     name: props.user?.name || '',
     email: props.user?.email || '',
-    role: props.user?.role || 'pg',
+    role: props.user?.role || 'engineer',
     password: '',
     password_confirmation: '',
     _method: props.isEditMode ? 'PUT' : undefined,
@@ -84,11 +84,11 @@ const cancel = () => {
                     class="mt-1 block w-full rounded-md border-gray-300 dark:border-white/10 bg-white/50 dark:bg-slate-900/50 dark:text-white shadow-sm focus:border-primary-500 focus:ring-primary-500 backdrop-blur-sm transition-all"
                     :class="{ 'border-red-500': form.errors.role }"
                 >
-                    <option value="pm">Project Manager</option>
-                    <option value="pg">Programmer</option>
-                    <option value="co">Communicator</option>
-                    <option value="ds">Designer</option>
-                    <option value="other">Other</option>
+                    <option value="leader">Project Leader</option>
+                    <option value="engineer">Programmer</option>
+                    <option value="Communicator">Communicator</option>
+                    <option value="designer">Designer</option>
+                    <option value="manager">Manager</option>
                 </select>
                 <InputError class="mt-2" :message="form.errors.role" />
             </div>

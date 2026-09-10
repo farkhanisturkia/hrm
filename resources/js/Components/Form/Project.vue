@@ -1,42 +1,65 @@
 <script setup>
 import { useForm, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import TextInput from '@/Components/TextInput.vue';
 import SelectInput from '@/Components/SelectInput.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 
 const emit = defineEmits(['close']);
-const page = usePage()
+const page = usePage();
+
 const queryParams = computed(() => {
-  const url = new URL(page.url, window.location.origin);
-  return Object.fromEntries(url.searchParams);
+    const url = new URL(page.url, window.location.origin);
+    return Object.fromEntries(url.searchParams);
 });
 
 const props = defineProps({
-    project: {},
-    projectOwners: {},
-    projectOwnerId: '',
+    project: Object,
+    projectOwners: Array,
+    projectOwnerId: [String, Number],
     isEditMode: Boolean,
 });
 
 const form = useForm({
     name: props.project?.name || '',
     project_owner_id: props.project?.project_owner_id || Number(props.projectOwnerId) || '',
-    _method: props.isEditMode ? 'PUT' : undefined,
 });
 
-const submitForm = () => {
-    const routeName = props.isEditMode ? 'project.update' : 'project.store';
-    const routeParams = props.isEditMode ? props.project.id : undefined;
+watch(
+    () => props.project,
+    (newVal) => {
+        form.name = newVal?.name || '';
+        form.project_owner_id = newVal?.project_owner_id || Number(props.projectOwnerId) || '';
+        form.clearErrors();
+    }
+);
 
-    form.post(route(routeName, {'id': routeParams, 'project_owner_id': queryParams.value.projectOwners_id}), {
-        onFinish: () => emit('close'),
-    });
+const submitForm = () => {
+    const params = {
+        project_owner_id: queryParams.value.project_owner_id || queryParams.value.projectOwners_id
+    };
+
+    if (props.isEditMode) {
+        form.put(route('project.update', { id: props.project.id, ...params }), {
+            onSuccess: () => {
+                form.reset();
+                emit('close');
+            },
+        });
+    } else {
+        form.post(route('project.store', params), {
+            onSuccess: () => {
+                form.reset();
+                emit('close');
+            },
+        });
+    }
 };
 
 const cancel = () => {
-    form.reset('name');
+    form.reset();
+    form.clearErrors();
     emit('close');
 };
 </script>
@@ -56,7 +79,6 @@ const cancel = () => {
                     type="text"
                     class="mt-1 block w-full bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm dark:border-white/10 dark:text-white"
                     v-model="form.name"
-                    required
                     autofocus
                     autocomplete="name"
                 />
