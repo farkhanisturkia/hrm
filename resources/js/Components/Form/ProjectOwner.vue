@@ -1,5 +1,6 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
+import { watch } from 'vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -7,26 +8,43 @@ import InputLabel from '@/Components/InputLabel.vue';
 const emit = defineEmits(['close']);
 
 const props = defineProps({
-    projectOwners: {}, // Disesuaikan dengan prop dari parent
+    projectOwners: Object,
     isEditMode: Boolean,
 });
 
 const form = useForm({
     name: props.projectOwners?.name || '',
-    _method: props.isEditMode ? 'PUT' : undefined,
 });
 
-const submitForm = () => {
-    const routeName = props.isEditMode ? 'projectOwner.update' : 'projectOwner.store';
-    const routeParams = props.isEditMode ? props.projectOwners.id : undefined;
+watch(
+    () => props.projectOwners,
+    (newVal) => {
+        form.name = newVal?.name || '';
+        form.clearErrors();
+    }
+);
 
-    form.post(route(routeName, routeParams), {
-        onFinish: () => emit('close'),
-    });
+const submitForm = () => {
+    if (props.isEditMode) {
+        form.put(route('projectOwner.update', props.projectOwners.id), {
+            onSuccess: () => {
+                form.reset();
+                emit('close');
+            },
+        });
+    } else {
+        form.post(route('projectOwner.store'), {
+            onSuccess: () => {
+                form.reset();
+                emit('close');
+            },
+        });
+    }
 };
 
 const cancel = () => {
-    form.reset('name');
+    form.reset();
+    form.clearErrors();
     emit('close');
 };
 </script>

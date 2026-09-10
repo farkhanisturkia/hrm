@@ -10,10 +10,10 @@ const emit = defineEmits(['close']);
 
 const props = defineProps({
     task: {},
-    pl: {},
-    co: {},
-    pg: {},
-    ds: {},
+    pm: {},
+    communicator: {},
+    engineer: {},
+    designer: {},
 });
 
 const initialComunicators = Array.isArray(props.task?.communicator)
@@ -29,7 +29,7 @@ const initialDesigners = Array.isArray(props.task?.designer)
     : [''];
 
 const form = useForm({
-    pl: props.task?.pl || '',
+    pm: props.task?.pm || '',
     communicator: initialComunicators,
     programmer: initialProgrammers,
     designer: initialDesigners,
@@ -95,27 +95,27 @@ const cancel = () => {
             
             <div class="max-h-[60vh] overflow-y-auto px-1 space-y-4 custom-scrollbar">
                 <div>
-                    <InputLabel for="type" value="Project Leader" />
+                    <InputLabel for="type" value="Project Manager" />
                     <SelectInput
                         id="type"
-                        v-model="form.pl"
-                        :options="pl"
+                        v-model="form.pm"
+                        :options="pm"
                         label="name"
                         valueKey="id"
                         class="mt-1 block w-full"
-                        placeholder="Search or select a project leader..."
+                        placeholder="Search or select a project manager..."
                         :dark="true"
                     />
-                    <InputError class="mt-2" :message="form.errors.pl" />
+                    <InputError class="mt-2" :message="form.errors.pm" />
                 </div>
 
                 <div>
                     <InputLabel value="Communicators" />
-                    <div v-for="(link, index) in form.communicator" :key="'co-' + index" class="mt-1 flex items-center gap-2">
+                    <div v-for="(link, index) in form.communicator" :key="'communicator-' + index" class="mt-1 flex items-center gap-2">
                         <SelectInput
-                            :id="'co_link_' + index"
+                            :id="'communicator_link_' + index"
                             v-model="form.communicator[index]"
-                            :options="co"
+                            :options="communicator"
                             :array="form.communicator"
                             label="name"
                             valueKey="id"
@@ -144,11 +144,11 @@ const cancel = () => {
 
                 <div>
                     <InputLabel value="Programmers" />
-                    <div v-for="(link, index) in form.programmer" :key="'pg-' + index" class="mt-1 flex items-center gap-2">
+                    <div v-for="(link, index) in form.programmer" :key="'engineer-' + index" class="mt-1 flex items-center gap-2">
                         <SelectInput
-                            :id="'pg_link_' + index"
+                            :id="'engineer_link_' + index"
                             v-model="form.programmer[index]"
-                            :options="pg"
+                            :options="engineer"
                             :array="form.programmer"
                             label="name"
                             valueKey="id"
@@ -177,11 +177,11 @@ const cancel = () => {
 
                 <div>
                     <InputLabel value="Designer" />
-                    <div v-for="(link, index) in form.designer" :key="'ds-' + index" class="mt-1 flex items-center gap-2">
+                    <div v-for="(link, index) in form.designer" :key="'designer-' + index" class="mt-1 flex items-center gap-2">
                         <SelectInput
-                            :id="'ds_link_' + index"
+                            :id="'designer_link_' + index"
                             v-model="form.designer[index]"
-                            :options="ds"
+                            :options="designer"
                             :array="form.designer"
                             label="name"
                             valueKey="id"

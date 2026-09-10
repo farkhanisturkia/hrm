@@ -1,16 +1,10 @@
 <template>
-  <label class="relative inline-flex items-center cursor-pointer">
-    <input
-      type="checkbox"
-      v-model="isChecked"
-      class="sr-only peer"
-    />
-    <div
-      class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-blue-600 transition-colors duration-300"
-    ></div>
-    <span
-      class="absolute w-4 h-4 bg-white rounded-full left-1 top-1 peer-checked:translate-x-5 transition-transform duration-300"
-    ></span>
+  <label class="flex items-center justify-center cursor-pointer tooltip-trigger">
+    <div class="relative">
+        <input type="checkbox" class="sr-only" v-model="isChecked">
+        <div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-blue-600 transition-colors duration-300" :class="isChecked ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-slate-600'"></div>
+        <div class="absolute w-4 h-4 bg-white rounded-full left-1 top-1 peer-checked:translate-x-5 transition-transform duration-300" :class="{'transform translate-x-5': isChecked}"></div>
+    </div>
   </label>
 </template>
 

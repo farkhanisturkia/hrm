@@ -54,7 +54,7 @@ watch(() => props.show, (newVal) => {
                 <button
                     @click="handleClose"
                     :disabled="processing || isLoading"
-                    class="px-4 py-2 bg-white/40 dark:bg-gray-800 text-white rounded-lg hover:opacity-30 border border-white transition disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="px-4 py-2 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-white rounded-lg hover:opacity-70 border border-gray-400 dark:border-white transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     Cancel
                 </button>
