@@ -4,104 +4,65 @@ namespace App\Http\Controllers;
 
 use App\Models\Skill;
 use App\Models\User;
+use App\Services\SkillService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Http\RedirectResponse;
-use App\Exports\SkillMultiSheetExport;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Maatwebsite\Excel\Facades\Excel;
-use Maatwebsite\Excel\Facades\Redis;
 use Inertia\Inertia;
 
 class SkillController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    public function __construct(
+        protected SkillService $skillService
+    ) {}
+
     public function index(Request $request)
-{
-    $userId = $request->query('user_id');
-    $auth = Auth::user();
-    $cacheKey = "skills_user_" . ($userId ?? $auth->id);
+    {
+        $skills = $this->skillService->getFilteredSkills($request->query());
 
-    $skills = \Cache::remember($cacheKey, 1800, function() use ($userId, $auth) {
-        $skillsQuery = Skill::orderBy('created_at', 'desc');
+        $userVersion = Cache::get('users_cache_version', 1);
+        $users = Cache::remember("all_user_u{$userVersion}", 1800, function () {
+            return User::orderBy('name')->get();
+        });
 
-        if ($userId && in_array($auth->role, ['other', 'co'])) {
-            $skillsQuery->where('user_id', $userId);
-        } else {
-            $skillsQuery->where('user_id', $auth->id);
-        }
+        return Inertia::render('User/Skill', [
+            'skills' => $skills,
+            'users'  => $users
+        ]);   
+    }
 
-        return $skillsQuery->get();
-    });
-
-    $users = \Cache::remember('all_users', 1800, function() {
-        return User::all();
-    });
-
-    return Inertia::render('User/Skill', compact('skills', 'users'));   
-}
-
-    /**
-     * Handle an incoming registration request.
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
             'skill' => 'required|string|max:255',
         ]);
 
-        $user = User::where('id', Auth::id())->first();
-        $skill = $user->skills()->create($validated);
-        
-        \Cache::flush();
+        $skill = $this->skillService->storeSkill($validated);
 
-        Auth::user()->logs()->create([
-            'target' => 'skill',
-            'description' => "[CREATE] skill {$skill->skill}",
-        ]);
-
-        return back()->with('success', "Skill '{$skill->skill}' berhasil ditambahkan!");
+        return back()->with('success', 'The skill ' . $skill->skill . ' has been successfully added!');
     }
 
-    /**
-     * Delete the user's skill.
-     */
-    public function destroy($id): RedirectResponse
+    public function destroy(Skill $skill): RedirectResponse
     {
-        $skill = Skill::findOrFail($id);
-        $skill->delete();
+        $skillName = $skill->skill;
 
-        \Cache::flush();
+        $this->skillService->deleteSkill($skill);
 
-        Auth::user()->logs()->create([
-            'target' => 'skill',
-            'description' => "[DELETE] skill {$skill->skill}",
-        ]);
-
-        return back()->with('warning', "Skill '{$skill->skill}' berhasil dihapus!");
+        return back()->with('warning', 'The ' . $skillName . ' skill was successfully deleted!');
     }
 
-    /**
-     * Export skill.
-     */ 
-    public function export(Request $request)
+    public function export(Request $request): BinaryFileResponse
     {
-        $query = $request->query();
+        $userId = $request->query('user_id');
 
-        $filename = 'skills.xlsx';
-        if (isset($query['user_id'])) {
-            $user = User::where('id', $query['user_id'])->first();
-            $filename =  $user->name . '_skills.xlsx';
-        }
+        $exportData = $this->skillService->exportSkills($userId);
 
-        Auth::user()->logs()->create([
-            'target' => 'skill',
-            'description' => "[EXPORT] skills",
-        ]);
-
-        return Excel::download(new SkillMultiSheetExport($query['user_id'] ?? null), $filename);
+        return Excel::download(
+            $exportData['export'], 
+            $exportData['filename']
+        );
     }
 }

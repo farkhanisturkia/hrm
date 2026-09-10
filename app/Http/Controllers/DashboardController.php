@@ -2,47 +2,68 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use Inertia\Inertia;
+use App\Models\Project;
 use App\Models\Task;
 use App\Models\User;
-use App\Models\Project;
-use Illuminate\Support\Facades\Redis;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Inertia\Inertia;
+use Inertia\Response;
 
 class DashboardController extends Controller
 {
-    public function index()
+    public function index(Request $request): Response
     {
-        $projects = \Cache::remember('all_projects', 1800, function() {
+        $projectsVersion = Cache::get('projects_cache_version', 1);
+        $tasksVersion    = Cache::get('tasks_cache_version', 1);
+        $usersVersion    = Cache::get('users_cache_version', 1);
+
+        $projectsKey = "all_project_p{$projectsVersion}_t{$tasksVersion}";
+        $projects = Cache::remember($projectsKey, 1800, function () {
             return Project::with(['tasks' => fn($q) => $q
                 ->where('isActive', true)
                 ->with('project')
                 ->orderByRaw('ISNULL(due_date), due_date ASC')
             ])
-            ->where('isDeleted', false)
+            ->where('isActive', true)
             ->withCount(['tasks as active_tasks_count' => fn($q) => $q->where('isActive', true)])
             ->orderByDesc('active_tasks_count')
             ->get();
         });
 
-        $members = \Cache::remember('all_members', 1800, function() {
-            return User::get()
-                ->where('role', '!=', 'other')
-                ->map(function ($user) {
-                    $user->total_tasks = Task::where('isActive', true)
-                        ->where(fn($q) => $q
-                            ->whereJsonContains('programmer', $user->id)
-                            ->orWhereJsonContains('designer', $user->id)
-                            ->orWhereJsonContains('communicator', $user->id)
-                        )
-                        ->count();
-                    return $user;
-                })
-                ->sortByDesc('total_tasks')
-                ->values();
+        $usersKey = "all_user_u{$usersVersion}_t{$tasksVersion}";
+        $users = Cache::remember($usersKey, 1800, function () {
+            $activeTasks = Task::where('isActive', true)
+                ->select(['id', 'programmer', 'designer', 'communicator'])
+                ->get();
+
+            $users = User::where('role', '!=', 'manager')
+                ->orderBy('name')
+                ->get();
+
+            return $users->map(function ($user) use ($activeTasks) {
+                $user->total_tasks = $activeTasks->filter(function ($task) use ($user) {
+                    $programmers   = is_array($task->programmer) ? $task->programmer : json_decode($task->programmer ?? '[]', true);
+                    $designers     = is_array($task->designer) ? $task->designer : json_decode($task->designer ?? '[]', true);
+                    $communicators = is_array($task->communicator) ? $task->communicator : json_decode($task->communicator ?? '[]', true);
+
+                    $programmers   = is_array($programmers) ? $programmers : [];
+                    $designers     = is_array($designers) ? $designers : [];
+                    $communicators = is_array($communicators) ? $communicators : [];
+
+                    return in_array($user->id, $programmers) ||
+                           in_array($user->id, $designers) ||
+                           in_array($user->id, $communicators);
+                })->count();
+
+                return $user;
+            })
+            ->sortByDesc('total_tasks')
+            ->values();
         });
 
-        $tasks = \Cache::remember('all_task', 1800, function() {
+        $tasksKey = "all_task_t{$tasksVersion}_p{$projectsVersion}_u{$usersVersion}";
+        $tasks = Cache::remember($tasksKey, 1800, function () {
             return Task::where('isActive', true)
                 ->with('project')
                 ->orderByRaw('ISNULL(due_date), due_date ASC')
@@ -51,7 +72,7 @@ class DashboardController extends Controller
 
         return Inertia::render('Dashboard', [
             'projects' => $projects,
-            'members'  => $members,
+            'users'  => $users,
             'tasks'    => $tasks,
         ]);
     }

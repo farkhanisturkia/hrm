@@ -2,36 +2,42 @@
 
 namespace App\Http\Controllers;
 
-use Maatwebsite\Excel\Facades\Excel;
-use Illuminate\Support\Facades\Auth;
-use App\Imports\MultiSheetImport;
 use App\Exports\TemplateExport;
+use App\Imports\MultiSheetImport;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
+use Inertia\Response;
+use Maatwebsite\Excel\Facades\Excel;
 use Maatwebsite\Excel\Validators\ValidationException;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ImportController extends Controller
 {
-    public function index()
+    public function index(): Response
     {
         return Inertia::render('Import/Index');   
     }
 
-    public function store(Request $request) 
+    public function store(Request $request): RedirectResponse
     {
         $request->validate([
             'file' => 'required|mimes:xlsx,xls,csv'
         ]);
 
+        $user = Auth::user();
+
         try {
             Excel::import(new MultiSheetImport, $request->file('file'));
-    
-            Auth::user()->logs()->create([
+
+            $user->logs()->create([
                 'target' => 'template',
                 'description' => "[IMPORT] template",
             ]);
-    
-            return back()->with('success', "Import berhasil!");
+
+            return back()->with('success', "Import successful!");
 
         } catch (ValidationException $e) {
             $failures = $e->failures();
@@ -43,28 +49,29 @@ class ImportController extends Controller
                 $errorMessages = $failure->errors();
 
                 foreach ($errorMessages as $message) {
-                    $errorList[] = "Baris {$row}, kolom '{$attribute}': {$message}";
+                    $errorList[] = 'Row ' . $row . ', column ' . $attribute . ': ' . $message;
                 }
             }
 
             return back()->with([
-                'error' => 'Import gagal! Terdapat ' . count($errorList) . ' kesalahan validasi.',
+                'error' => 'Import failed! There were ' . count($errorList) . ' validation errors.',
                 'import_errors' => $errorList
             ]);
 
         } catch (\Throwable $th) {
-            $errorMessage = 'Import gagal: ' . $th->getMessage() . ' (File: ' . basename($th->getFile()) . ' Baris: ' . $th->getLine() . ')';
+            $errorMessage = 'Import failed: ' . $th->getMessage() . ' (File: ' . basename($th->getFile()) . ' Line: ' . $th->getLine() . ')';
             
             return back()
                 ->withInput()
                 ->with('error', $errorMessage);
         }
-
     }
 
-    public function template()
+    public function template(): BinaryFileResponse
     {
-        Auth::user()->logs()->create([
+        $user = Auth::user();
+
+        $user->logs()->create([
             'target' => 'template',
             'description' => "[DOWNLOAD] template",
         ]);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -22,8 +23,13 @@ class TaskController extends Controller
 
     public function index(Request $request): Response
     {
-        $tasks    = $this->taskService->getFilteredTasks($request->query());
-        $projects = Project::with('projectOwner')->where('isDeleted', false)->get();
+        $tasks = $this->taskService->getFilteredTasks($request->query());
+
+        $projectVersion = Cache::get('projects_cache_version', 1);
+        $projectOwnerVersion = Cache::get('project_owner_cache_version', 1);
+        $projects = Cache::remember("all_project_p{$projectVersion}_po{$projectOwnerVersion}", 1800, function () {
+            return Project::with('projectOwner')->where('isActive', true)->get();
+        });
 
         return Inertia::render('Task/Index', [
             ...$this->taskService->getFormData(),
@@ -56,12 +62,15 @@ class TaskController extends Controller
             'project.projectOwner',
         ]);
 
-        $projects = Project::with('projectOwner')->get();
+        $projectVersion = Cache::get('projects_cache_version', 1);
+        $projectOwnerVersion = Cache::get('project_owner_cache_version', 1);
+        $projects = Cache::remember("all_project_p{$projectVersion}_po{$projectOwnerVersion}", 1800, function () {
+            return Project::with('projectOwner')->where('isActive', true)->get();
+        });
 
         return Inertia::render('Task/Show', [
             ...$this->taskService->getFormData(),
             'task'          => $task,
-            'project'       => $task->project,
             'projects'      => $projects,
             'totalTimeUsed' => $task->logtimes->sum('time_used'),
             'prs'           => $task->pullRequests,
@@ -71,13 +80,13 @@ class TaskController extends Controller
     public function assignTask(Request $request, Task $task): RedirectResponse
     {
         $request->validate([
-            'pl'           => 'nullable|numeric',
+            'pm'           => 'nullable|numeric',
             'communicator' => 'array',
             'programmer'   => 'array',
             'designer'     => 'array',
         ]);
 
-        $this->taskService->assignTask($task, $request->only(['pl', 'communicator', 'programmer', 'designer']));
+        $this->taskService->assignTask($task, $request->only(['pm', 'communicator', 'programmer', 'designer']));
 
         return back()->with('success', 'Task berhasil di-assign!');
     }
@@ -132,15 +141,7 @@ class TaskController extends Controller
     {
         $this->taskService->closeTask($task);
 
-        return redirect()->route('task.list')->with('warning', "Task '{$task->issue}' berhasil diclose!");
-    }
-
-    public function destroy(Task $task): RedirectResponse
-    {
-        $issue = $task->issue;
-        $this->taskService->destroy($task);
-
-        return redirect()->route('task.list')->with('warning', "Task '{$issue}' berhasil dihapus!");
+        return redirect()->route('task.list')->with('warning', 'The task ' . $task->issue . ' was successfully closed!');
     }
 
     public function markReviewComplete(int $taskId, int $reviewerId)

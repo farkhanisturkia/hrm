@@ -5,127 +5,77 @@ namespace App\Http\Controllers;
 use App\Models\Project;
 use App\Models\ProjectOwner;
 use App\Models\User;
+use App\Services\ProjectService;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redis;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Inertia;
 
 class ProjectController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    public function __construct(
+        protected ProjectService $projectService
+    ) {}
+
     public function index(Request $request)
     {
-        $projectOwnerId = $request->query('project_owner_id');
-        $page = $request->query('page', 1);
-        $cacheKey = "projects_list_owner_{$projectOwnerId}_page_{$page}";
-
-        $projects = \Cache::remember($cacheKey, 1800, function() use ($projectOwnerId) {
-            $projectQuery = Project::where('isDeleted', false)->with('projectOwner');
-
-            if ($projectOwnerId) {
-                $projectQuery->where('project_owner_id', $projectOwnerId);
-            }
-
-            return $projectQuery->paginate(10)->withQueryString();
+        $projects = $this->projectService->getFilteredProjects($request->query());
+                
+        $projectOwnerVersion = Cache::get('project_owner_cache_version', 1);
+        $projectOwners = Cache::remember("all_project_owner_po{$projectOwnerVersion}", 1800, function () {
+            return ProjectOwner::where('isActive', true)->get();
         });
 
-        $projectOwners = \Cache::remember('all_project_owners', 1800, function() {
-            return ProjectOwner::where('isDeleted', false)->get();
+        $userVersion = Cache::get('users_cache_version', 1);
+        $users = Cache::remember("all_user_u{$userVersion}", 1800, function () {
+            return User::orderBy('name')->get();
         });
-
-        $users = \Cache::remember('all_users', 1800, function() {
-            return User::get();
-        });
-
-        return Inertia::render('Project/Index', compact('projects', 'projectOwners', 'users'));   
+ 
+        return Inertia::render('Project/Index', [
+            'projects' => $projects,
+            'projectOwners' => $projectOwners,
+            'users' => $users
+        ]); 
     }
 
-    /**
-     * Handle an incoming registration request.
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'project_owner_id' => 'required'
+        $validated = $request->validate([
+            'name'             => 'required|string|max:255|unique:projects,name',
+            'project_owner_id' => 'required|exists:project_owners,id'
         ]);
 
-        $projectOwner = ProjectOwner::where('id', $request->project_owner_id)->first();
+        $project = $this->projectService->storeProject($validated);
 
-        $project = $projectOwner->projects()->create([
-            'name' => $request->name,
-            'creator' => Auth::id(),
-            'updater' => Auth::id()
-        ]);
-
-        \Cache::flush();
-
-        Auth::user()->logs()->create([
-            'target' => 'project',
-            'description' => "[CREATE] project {$project->name}",
-        ]);
-
-        return redirect(route('project.list', ['project_owner_id' => $request->query('project_owner_id')]))
-            ->with('success', "Project '{$project->name}' berhasil dibuat!");
+        return redirect()->route('project.list', array_filter(['project_owner_id' => $request->query('project_owner_id')]))
+            ->with('success', 'Project ' . $project->name . ' was successfully created!');
     }
 
-    /**
-     * Update the project's data.
-     */
     public function update(Request $request, $id): RedirectResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'project_owner_id' => 'required'
+        $validated = $request->validate([
+            'name' => 'required|string|max:255|unique:projects,name,' . $id,
+            'project_owner_id' => 'required|exists:project_owners,id'
         ]);
 
-        $projectOwner = ProjectOwner::findOrFail($request->project_owner_id);
+        $project = $this->projectService->updateProject($validated, $id);
 
-        $project = Project::findOrFail($id);
-        $project->update([
-            'name' => $request->name,
-            'project_owner_id' => $projectOwner->id,
-            'updater' => Auth::id()
-        ]);
-
-        \Cache::flush();
-
-        Auth::user()->logs()->create([
-            'target' => 'project',
-            'description' => "[UPDATE] project {$project->name}",
-        ]);
-
-        return redirect(route('project.list', ['project_owner_id' => $request->query('project_owner_id')]))
-            ->with('success', "Project '{$project->name}' berhasil diperbarui!");
+        return redirect()->route('project.list', array_filter(['project_owner_id' => $request->query('project_owner_id')]))
+            ->with('success', 'Project ' . $project->name . ' has been successfully updated!');
     }
-
-    /**
-     * Delete the project's data.
-     */
-    public function destroy(Request $request, $id): RedirectResponse
+    public function changeIsActive(Project $project): RedirectResponse
     {
-        $updated = Project::where('id', $id)->update([
-            'isDeleted' => true,
-            'updater' => Auth::id()
-        ]);
-        
-        \Cache::flush();
+        try {
+            $this->projectService->activeProject($project);
+            return back()->with('success', 'Status has been successfully updated!');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $errorMessage = $e->getMessage(); 
+            if (isset($e->errors()['project_owner'][0])) {
+                $errorMessage = $e->errors()['project_owner'][0];
+            }
 
-        if ($updated) {
-            $project = Project::findOrFail($id);
-            $auth = Auth::user();
-            $auth->logs()->create([
-                'target' => 'project',
-                'description' => "[SOFT DELETE] project {$project->name}",
-            ]);
+            return back()->with('error', $errorMessage);
         }
-
-        return redirect(route('project.list', ['project_owner_id' => $request->query('project_owner_id')]))
-            ->with('warning', "Project '{$project->name}' berhasil dihapus!");
     }
 }
