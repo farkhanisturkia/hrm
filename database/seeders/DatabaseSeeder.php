@@ -16,7 +16,7 @@ class DatabaseSeeder extends Seeder
         $farkhan = User::factory()->create([
             'name' => 'Farkhan',
             'email' => 'farkhan@kyodo-i.com',
-            'role' => 'pg',
+            'role' => 'engineer',
             'avatar' => '/avatars/1.png',
             'password' => Hash::make('user@kndi')
         ]);
@@ -24,7 +24,7 @@ class DatabaseSeeder extends Seeder
         $leo = User::factory()->create([
             'name' => 'Leo',
             'email' => 'leo@kyodo-i.com',
-            'role' => 'pm',
+            'role' => 'leader',
             'avatar' => '/avatars/1.png',
             'password' => Hash::make('user@kndi')
         ]);
@@ -32,7 +32,7 @@ class DatabaseSeeder extends Seeder
         $wawan = User::factory()->create([
             'name' => 'Wawan',
             'email' => 'wawan@kyodo-i.com',
-            'role' => 'pg',
+            'role' => 'engineer',
             'avatar' => '/avatars/1.png',
             'password' => Hash::make('user@kndi')
         ]);
@@ -40,7 +40,7 @@ class DatabaseSeeder extends Seeder
         $trisno = User::factory()->create([
             'name' => 'Trisno',
             'email' => 'trisno@kyodo-i.com',
-            'role' => 'pg',
+            'role' => 'engineer',
             'avatar' => '/avatars/1.png',
             'password' => Hash::make('user@kndi')
         ]);
@@ -48,7 +48,7 @@ class DatabaseSeeder extends Seeder
         $tasya = User::factory()->create([
             'name' => 'Tasya',
             'email' => 'tasya@kyodo-i.com',
-            'role' => 'co',
+            'role' => 'communicator',
             'avatar' => '/avatars/1.png',
             'password' => Hash::make('user@kndi')
         ]);
@@ -56,7 +56,7 @@ class DatabaseSeeder extends Seeder
         $nora = User::factory()->create([
             'name' => 'Nora',
             'email' => 'nora@kyodo-i.com',
-            'role' => 'other',
+            'role' => 'manager',
             'avatar' => '/avatars/1.png',
             'password' => Hash::make('user@kndi')
         ]);
@@ -64,15 +64,7 @@ class DatabaseSeeder extends Seeder
         $aries = User::factory()->create([
             'name' => 'Aries',
             'email' => 'aries@kyodo-i.com',
-            'role' => 'ds',
-            'avatar' => '/avatars/1.png',
-            'password' => Hash::make('user@kndi')
-        ]);
-
-        $hr = User::factory()->create([
-            'name' => 'HR',
-            'email' => 'hr@kyodo-i.com',
-            'role' => 'other',
+            'role' => 'designer',
             'avatar' => '/avatars/1.png',
             'password' => Hash::make('user@kndi')
         ]);
