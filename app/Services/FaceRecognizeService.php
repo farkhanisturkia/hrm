@@ -36,7 +36,6 @@ class FaceRecognizeService
 
             if ($response->successful() && $response->json('success')) {
                 $user->update(['face_embedding' => $response->json('embedding')]);
-                Cache::forget('all_users_list');
                 return true;
             }
 
