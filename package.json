@@ -7,7 +7,7 @@
         "dev": "vite"
     },
     "dependencies": {
-        "@headlessui/vue": "^2.0.0",
+        "@headlessui/vue": "^1.7.23",
         "@heroicons/vue": "^2.0.0",
         "@inertiajs/vue3": "^2.2.7",
         "@tailwindcss/forms": "^0.5.3",
@@ -26,5 +26,10 @@
         "laravel-vite-plugin": "^2.0.0",
         "postcss": "^8.4.31",
         "vite": "^7.0.7"
+    },
+    "allowScripts": {
+        "@tailwindcss/oxide@4.1.14": true,
+        "esbuild@0.25.10": true,
+        "puppeteer@24.26.0": true
     }
 }
