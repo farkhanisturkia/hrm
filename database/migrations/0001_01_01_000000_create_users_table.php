@@ -15,7 +15,10 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->enum('role', ['other', 'pm', 'pg', 'co', 'ds'])->default('pg');
+            $table->string('avatar')->default('/avatars/1.png');
+            $table->enum('role', ['manager', 'leader', 'engineer', 'communicator', 'designer'])->default('engineer');
+            $table->boolean('is_wfa_allowed')->default(false);
+            $table->boolean('isActive')->default(true);
             $table->timestamp('email_verified_at')->nullable();
             $table->json('face_embedding')->nullable();
             $table->string('password');

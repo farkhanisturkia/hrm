@@ -13,10 +13,10 @@ return new class extends Migration
     {
         Schema::create('project_owners', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+            $table->string('name')->unique();
             $table->unsignedInteger('creator');
             $table->unsignedInteger('updater');
-            $table->boolean('isDeleted')->default(false);
+            $table->boolean('isActive')->default(true);
             $table->timestamps();
         });
     }

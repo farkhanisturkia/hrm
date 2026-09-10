@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('project_id')->constrained()->onDelete('cascade');
             $table->string('issue');
-            $table->unsignedInteger('pl')->nullable();
+            $table->unsignedInteger('pm')->nullable();
             $table->json('communicator')->nullable();
             $table->json('programmer')->nullable();
             $table->json('designer')->nullable();
@@ -28,7 +28,6 @@ return new class extends Migration
             $table->dateTime('end_date')->nullable();
             $table->integer('time_used')->nullable();
             $table->boolean('isActive')->default(true);
-            $table->boolean('isAssign')->default(false);
             $table->unsignedInteger('creator');
             $table->unsignedInteger('updater');
             $table->timestamps();
