@@ -1,7 +1,5 @@
 <script>
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
-
-// 1. Layout Persistent
 export default { layout: AuthenticatedLayout };
 </script>
 
@@ -17,7 +15,7 @@ import User from '@/Components/Icon/User.vue';
 
 const props = defineProps({
   projects: { type: Array, default: () => [] },
-  members: { type: Array, default: () => [] },
+  users: { type: Array, default: () => [] },
   tasks: { type: Array, default: () => [] },
 });
 
@@ -67,7 +65,7 @@ const paddedTasks = computed(() => {
             <div class="overflow-x-auto w-full"> 
               <div class="max-h-[700px] overflow-y-auto custom-scrollbar">
                 <table class="w-full text-left dark:text-slate-200 table-auto border-collapse">
-                  <thead class="sticky top-0 bg-white/50 dark:bg-slate-900/80 z-10 backdrop-blur-md border-b border-white/20 dark:border-white/10">
+                  <thead class="sticky top-0 bg-white dark:bg-slate-900 z-10 backdrop-blur-md border-b border-white/20 dark:border-white/10">
                     <tr class="text-sm uppercase tracking-wider text-gray-600 dark:text-slate-400">
                       <th class="p-4 whitespace-nowrap min-w-[200px] font-semibold">Assign</th>
                       <th class="p-4 whitespace-nowrap font-semibold">Project</th>
@@ -96,14 +94,23 @@ const paddedTasks = computed(() => {
                             <div class="flex flex-wrap gap-1">
                                 <span v-for="(id, i) in [...(task.programmer || []), ...(task.designer || []), ...(task.communicator || [])]" :key="id" 
                                       class="inline-block px-2 py-0.5 rounded-md bg-primary-50/50 dark:bg-primary-500/10 border border-primary-100/50 dark:border-primary-500/20 text-sm text-primary-700 dark:text-primary-300">
-                                  {{ members.find(m => m.id === id)?.name ?? id }}
+                                  {{ users.find(m => m.id === id)?.name ?? id }}
                                 </span>
                             </div>
                           </template>
                           <span v-else class="text-gray-400 text-sm italic">-</span>
                         </td>
                         <td class="p-4 align-middle text-sm font-medium text-gray-700 dark:text-slate-200">{{ task.project.name }}</td>
-                        <td class="p-4 align-middle text-sm text-gray-600 dark:text-slate-400">{{ task.issue }}</td>
+                        <td class="p-4 align-middle text-sm text-gray-600 dark:text-slate-400">
+                          <div class="max-w-[250px]">
+                            <a
+                              :href="route('task.show', task.id)"
+                              class="block truncate text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 hover:underline decoration-primary-300 underline-offset-2 transition"
+                            >
+                              {{ task.issue }}
+                            </a>
+                          </div>
+                        </td>
                         <td class="p-4 align-middle text-sm">
                           <div class="max-w-[250px]"> 
                             <a 
@@ -119,10 +126,10 @@ const paddedTasks = computed(() => {
                         <td class="p-4 align-middle text-sm text-gray-500 dark:text-slate-400">{{ formatDate(task.start_date) }}</td>
                         <td class="p-4 align-middle text-sm">
                           <span :class="[
-                            'px-2 py-1 rounded-md text-sm font-bold border',
+                            'px-2 py-1 rounded-md text-sm font-bold',
                             task.due_date && moment().startOf('day').isAfter(moment(task.due_date).startOf('day'))
-                                ? 'bg-red-50/50 text-red-600 border-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20'
-                                : 'bg-emerald-50/50 text-emerald-600 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20'
+                                ? 'text-red-600 dark:text-red-400'
+                                : 'text-emerald-600 dark:text-emerald-400'
                           ]">
                             {{ formatDate(task.due_date) }}
                           </span>
@@ -154,7 +161,7 @@ const paddedTasks = computed(() => {
               <div class="overflow-x-auto w-full">
                 <div class="max-h-[300px] overflow-y-auto custom-scrollbar">
                   <table class="w-full text-left dark:text-slate-200 table-auto">
-                    <thead class="sticky top-0 bg-white/50 dark:bg-slate-900/80 z-10 backdrop-blur-md border-b border-white/20 dark:border-white/10">
+                    <thead class="sticky top-0 bg-white dark:bg-slate-900 z-10 backdrop-blur-md border-b border-white/20 dark:border-white/10">
                       <tr class="text-sm uppercase tracking-wider text-gray-600 dark:text-slate-400">
                         <th class="p-4 font-semibold">Project Name</th>
                         <th class="p-4 font-semibold text-center">Tasks</th>
@@ -184,10 +191,9 @@ const paddedTasks = computed(() => {
             :class="{ 'translate-y-0 opacity-100': isLoaded, 'translate-y-10 opacity-0': !isLoaded }"
           >
             <div class="relative z-10 -mb-[1px] shrink-0">
-               <div class="w-fit px-6 h-12 bg-white/40 dark:bg-slate-900/60 backdrop-blur-xl border-t border-l border-r border-white/40 dark:border-white/20 rounded-t-lg shadow-sm relative flex items-center gap-3">
+               <div class="w-fit px-6 h-12 bg-white/60 dark:bg-slate-900 backdrop-blur-xl dark:border-t dark:border-l dark:border-r dark:border-white/20 rounded-t-lg relative flex items-center gap-3">
                   <User class="w-5 h-5 text-primary-600 dark:text-primary-400 drop-shadow-sm" />
                   <span class="font-bold text-gray-800 dark:text-slate-100 text-sm tracking-wide">User Active</span>
-                  <div class="absolute -bottom-[1px] left-0 right-0 h-[2px] bg-white/40 dark:bg-slate-900/80 z-20"></div>
                </div>
             </div>
 
@@ -195,29 +201,29 @@ const paddedTasks = computed(() => {
               <div class="overflow-x-auto w-full">
                 <div class="max-h-[300px] overflow-y-auto custom-scrollbar">
                   <table class="w-full text-left dark:text-slate-200 table-auto">
-                    <thead class="sticky top-0 bg-white/50 dark:bg-slate-900/80 z-10 backdrop-blur-md border-b border-white/20 dark:border-white/10">
+                    <thead class="sticky top-0 bg-white dark:bg-slate-900 z-10 backdrop-blur-md border-b border-white/20 dark:border-white/10">
                       <tr class="text-sm uppercase tracking-wider text-gray-600 dark:text-slate-400">
-                        <th class="p-4 font-semibold">Team Member</th>
+                        <th class="p-4 font-semibold">User Name</th>
                         <th class="p-4 font-semibold text-center">Tasks</th>
                       </tr>
                     </thead>
                     <tbody class="divide-y divide-white/20 dark:divide-white/5">
-                      <tr v-for="member in members" :key="member.id" class="hover:bg-white/30 dark:hover:bg-white/5 transition duration-200">
+                      <tr v-for="user in users" :key="user.id" class="hover:bg-white/30 dark:hover:bg-white/5 transition duration-200">
                         <td class="p-4 text-sm flex items-center gap-3">
-                          <div class="w-8 h-8 rounded-full bg-primary-50/50 dark:bg-slate-700 flex items-center justify-center text-sm font-bold text-primary-600 border border-primary-100/50 dark:border-slate-600">
-                              {{ member.name.charAt(0).toUpperCase() }}
+                          <div class="w-8 h-8 rounded-full bg-primary-300/50 dark:bg-slate-700 flex items-center justify-center text-sm font-bold text-primary-600 border border-primary-400/50 dark:border-slate-600">
+                              {{ user.name.charAt(0).toUpperCase() }}
                           </div>
-                          <span class="font-medium text-gray-700 dark:text-slate-200">{{ member.name }}</span>
+                          <span class="font-medium text-gray-700 dark:text-slate-200">{{ user.name }}</span>
                         </td>
                         <td class="p-4 text-center">
-                          <span v-if="member.total_tasks > 0" class="inline-flex items-center justify-center min-w-[2rem] px-2 py-1 text-sm font-bold rounded-full bg-emerald-100/50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-500/30">
-                              {{ member.total_tasks }}
+                          <span v-if="user.total_tasks > 0" class="inline-flex items-center justify-center min-w-[2rem] px-2 py-1 text-sm font-bold rounded-full bg-emerald-100/50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-500/30">
+                              {{ user.total_tasks }}
                           </span>
-                          <span v-else class="text-gray-400 text-sm">-</span>
+                          <span v-else class="text-gray-700 dark:text-gray-400 text-sm">0</span>
                         </td>
                       </tr>
-                      <tr v-if="members.length === 0">
-                        <td colspan="2" class="p-8 text-center text-gray-400 dark:text-gray-500 italic">No members found</td>
+                      <tr v-if="users.length === 0">
+                        <td colspan="2" class="p-8 text-center text-gray-400 dark:text-gray-500 italic">No users found</td>
                       </tr>
                     </tbody>
                   </table>

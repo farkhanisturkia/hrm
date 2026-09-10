@@ -6,7 +6,6 @@ export default { layout: AuthenticatedLayout };
 
 <script setup>
 import Pen from '@/Components/Icon/Pen.vue';
-import Trash from '@/Components/Icon/Trash.vue';
 import Close from '@/Components/Icon/Close.vue';
 import Hamburger from '@/Components/Icon/Hamburger.vue';
 import User from '@/Components/Icon/User.vue';
@@ -17,7 +16,6 @@ import TaskAssignForm from '@/Components/Form/TaskAssign.vue';
 import TaskPrForm from '@/Components/Form/TaskPr.vue';
 import TaskCommentForm from '@/Components/Form/TaskComment.vue';
 import TaskReplyForm from '@/Components/Form/TaskReply.vue';
-import DeleteConfirmationModal from '@/Components/DeleteConfirmationModal.vue';
 import CloseTaskConfirmationModal from '@/Components/CloseTaskConfirmationModal.vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { ref, computed, onMounted } from 'vue';
@@ -33,8 +31,6 @@ const isEditMode = ref(false);
 const selectedTask = ref(null);
 const selectedComment = ref(null);
 const isLoaded = ref(false);
-const confirmDeleteModal = ref(false)
-const taskToDelete = ref(null)
 const confirmCloseModal = ref(false)
 
 onMounted(() => {
@@ -50,22 +46,6 @@ const role = computed(() => page.props.auth.user.role);
 // --- Handle Back ---
 const handleBack = () => {
   router.get(route('task.list'));
-};
-
-const openDeleteModal = (task) => {
-  taskToDelete.value = task;
-  confirmDeleteModal.value = true;
-}
-
-const closeDeleteModal = () => {
-  taskToDelete.value = null;
-  confirmDeleteModal.value = false
-}
-
-const handleConfirmDelete = () => {
-  router.delete(route('task.destroy', taskToDelete.value.id), {
-    onSuccess: () => closeDeleteModal(),
-  });
 };
 
 const handleEdit = () => {
@@ -129,14 +109,10 @@ const handleCloseForm = () => {
 
 const props = defineProps({
   task: {},
-  users: {},
-  project: {},
   projects: {},
-  communicator: {},
-  programmer: {},
-  designer: {},
   totalTimeUsed: '',
   prs: {},
+  userData: {},
 });
 
 const formatDate = (date, withTime = false) => {
@@ -155,10 +131,9 @@ const formatJsonList = (jsonData) => {
 };
 
 const getNameUser = (id) => {
-  return id ? props.users.find(u => u.id === id)?.name : '-';
+  return id ? props.userData.users.find(u => u.id === id)?.name : '-';
 };
 
-// --- CHART LOGIC ---
 const logtimeSegments = computed(() => {
   const logs = props.task.logtimes || [];
   if (!logs.length) return [];
@@ -204,32 +179,26 @@ const logtimeSegments = computed(() => {
 
 const visibleButtons = computed(() => {
   const buttons = [];
-  if (['other', 'pm'].includes(role.value)) {
+  if (['manager', 'leader'].includes(role.value)) {
     buttons.push({ action: 'assign', icon: User, handler: handleAssign, text: 'Assign' });
   }
   if (
-    (['pm', 'pg', 'ds'].includes(role.value) && [props.task?.programmer, props.task?.designer].some(arr => arr?.includes(id.value))) ||
-    ['other'].includes(role.value)
+    (['leader', 'engineer', 'designer'].includes(role.value) && [props.task?.programmer, props.task?.designer].some(arr => arr?.includes(id.value))) ||
+    ['manager'].includes(role.value)
   ) {
     buttons.push({ action: 'review', icon: UserPlus, handler: handlePr, text: 'Review' });
   }
   if (
-    props.task?.pl === id.value ||
-    ['other'].includes(role.value) ||
+    props.task?.pm === id.value ||
+    ['manager'].includes(role.value) ||
     [props.task?.communicator, props.task?.programmer, props.task?.designer, props.task?.reviewer].some(arr => arr?.includes(id.value))
   ) {
     buttons.push({ action: 'comment', icon: Chat, handler: handleComment, text: 'Comment' });
   }
-  if (['other', 'pm', 'co'].includes(role.value)) {
+  if (['manager', 'leader', 'communicator'].includes(role.value)) {
     buttons.push({ action: 'edit', icon: Pen, handler: handleEdit, text: 'Edit' });
   }
-  if (['other', 'pm', 'co'].includes(role.value)) {
-    buttons.push({ action: 'delete', icon: Trash, handler: () => openDeleteModal(props.task), text: 'Delete' });
-  }
-  if (
-    (['pm', 'pg', 'ds'].includes(role.value) && [props.task?.programmer, props.task?.designer].some(arr => arr?.includes(id.value))) ||
-    ['other'].includes(role.value)
-  ) {
+  if (['manager', 'leader', 'communicator'].includes(role.value)) {
     buttons.push({ action: 'close', icon: Close, handler: handleClose, text: 'Close Task' });
   }
   return buttons;
@@ -264,12 +233,12 @@ const visibleButtons = computed(() => {
                 {{ task.issue }}
                 </h2>
                 <div class="flex items-center gap-2 mt-1 text-sm font-medium text-gray-500 dark:text-slate-400">
-                  <span>{{ project.name }}</span>
+                  <span>{{ task.project.name }}</span>
                 </div>
             </div>
           </div>
 
-          <div class="flex flex-wrap gap-2 w-full md:w-auto justify-end">
+          <div class="hidden sm:flex flex-wrap gap-2 w-full md:w-auto justify-end">
             <button
               v-for="button in visibleButtons"
               :key="button.action"
@@ -283,21 +252,22 @@ const visibleButtons = computed(() => {
         </div>
     </div>
 
-    <div v-if="['other', 'co'].includes(role)" class="fixed sm:hidden right-6 bottom-6 z-50">
-      <div
-        class="shrink-0 inline-flex items-center justify-center p-3 rounded-full text-white bg-primary-600 shadow-xl z-40 transition-all duration-500 hover:scale-110 active:scale-95"
+    <div class="fixed sm:hidden right-6 bottom-6 z-50 flex flex-col-reverse items-center gap-3">
+      <button
+        type="button"
         @click="showButtons = !showButtons"
+        class="w-14 h-14 shrink-0 inline-flex items-center justify-center rounded-full text-white bg-primary-600 shadow-xl z-40 transition-all duration-300 hover:scale-105 active:scale-95 focus:outline-none"
       >
-        <Hamburger v-model="showButtons" class="w-6 h-6" />
-      </div>
-      <TransitionGroup tag="div" name="button-list">
+        <Hamburger v-model="showButtons" class="w-8 h-8 pointer-events-none" />
+      </button>
+
+      <TransitionGroup tag="div" name="button-list" class="flex flex-col-reverse items-center gap-3">
         <button
           v-for="(button, index) in visibleButtons"
           v-show="showButtons"
           :key="button.action"
           @click="button.handler"
-          class="fixed right-6 border border-white/20 rounded-full p-3 text-gray-700 dark:text-white bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-lg"
-          :style="{ bottom: `${80 + (index) * 60}px` }"
+          class="w-12 h-12 inline-flex items-center justify-center border border-white/20 rounded-full text-gray-700 dark:text-white bg-white/90 dark:bg-slate-800/90 backdrop-blur-md shadow-lg transition-all active:scale-95 origin-bottom"
         >
           <component :is="button.icon" class="w-5 h-5" />
         </button>
@@ -312,13 +282,13 @@ const visibleButtons = computed(() => {
 
     <div v-if="openAssignForm" class="fixed inset-0 z-[100] px-4 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity">
       <div class="bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl border border-white/50 dark:border-white/10 rounded-lg shadow-2xl max-w-lg w-full p-6 relative animate-in fade-in zoom-in duration-200">
-        <TaskAssignForm :task="selectedTask" :pl="users" :co="communicator" :pg="programmer" :ds="designer" @close="handleCloseForm" />
+        <TaskAssignForm :task="selectedTask" :pm="userData.users" :communicator="userData.communicator" :engineer="userData.programmer" :designer="userData.designer" @close="handleCloseForm" />
       </div>
     </div>
 
     <div v-if="openPrForm" class="fixed inset-0 z-[100] px-4 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity">
       <div class="bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl border border-white/50 dark:border-white/10 rounded-lg shadow-2xl max-w-lg w-full p-6 relative animate-in fade-in zoom-in duration-200">
-        <TaskPrForm :task="selectedTask" :pg="programmer" @close="handleCloseForm" />
+        <TaskPrForm :task="selectedTask" :engineer="userData.programmer" @close="handleCloseForm" />
       </div>
     </div>
 
@@ -351,11 +321,11 @@ const visibleButtons = computed(() => {
               <div class="space-y-4">
                 <div class="grid grid-cols-3 gap-2">
                     <span class="text-sm font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Project Owner</span>
-                    <span class="col-span-2 text-sm font-medium text-gray-800 dark:text-slate-200">{{ project.project_owner?.name || '-' }}</span>
+                    <span class="col-span-2 text-sm font-medium text-gray-800 dark:text-slate-200">{{ task.project.project_owner?.name || '-' }}</span>
                 </div>
                 <div class="grid grid-cols-3 gap-2">
                     <span class="text-sm font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Project</span>
-                    <span class="col-span-2 text-sm font-medium text-gray-800 dark:text-slate-200">{{ project.name || '-' }}</span>
+                    <span class="col-span-2 text-sm font-medium text-gray-800 dark:text-slate-200">{{ task.project.name || '-' }}</span>
                 </div>
                 <div class="grid grid-cols-3 gap-2">
                     <span class="text-sm font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Creator</span>
@@ -386,8 +356,8 @@ const visibleButtons = computed(() => {
             </h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
               <div class="flex flex-col gap-1">
-                  <span class="text-sm font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Project Leader</span>
-                  <span class="text-sm font-semibold text-gray-800 dark:text-slate-200">{{ getNameUser(task.pl) }}</span>
+                  <span class="text-sm font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Project Manager</span>
+                  <span class="text-sm font-semibold text-gray-800 dark:text-slate-200">{{ getNameUser(task.pm) }}</span>
               </div>
               <div class="flex flex-col gap-1">
                   <span class="text-sm font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Communicator</span>
@@ -564,14 +534,6 @@ const visibleButtons = computed(() => {
       </div>
     </div>
 
-    <DeleteConfirmationModal
-      :show="confirmDeleteModal"
-      title="Delete Task"
-      :message="`Are you sure want to delete task ${taskToDelete?.issue}`"
-      @close="closeDeleteModal"
-      @confirm="handleConfirmDelete"
-    />
-
     <CloseTaskConfirmationModal
       :show="confirmCloseModal"
       title="Close Task"
@@ -582,8 +544,16 @@ const visibleButtons = computed(() => {
   </div>
 </template>
 
+<style scoped>
+:global(.dark) .custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+:global(.dark) .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+</style>
+
 <style>
-/* Animasi tombol floating (mobile) */
 .button-list-enter-active,
 .button-list-leave-active {
   transition: all 0.3s ease;
@@ -594,7 +564,6 @@ const visibleButtons = computed(() => {
   transform: translateY(20px);
 }
 
-/* Scrollbar halus untuk Dark Mode & Light Mode */
 .custom-scrollbar::-webkit-scrollbar {
   height: 6px;
   width: 6px;
@@ -604,17 +573,10 @@ const visibleButtons = computed(() => {
   background: transparent; 
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5); /* Abu-abu untuk Light Mode */
+  background-color: rgba(156, 163, 175, 0.5);
   border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: rgba(156, 163, 175, 0.8);
-}
-
-:global(.dark) .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(255, 255, 255, 0.1); /* Putih transparan untuk Dark Mode */
-}
-:global(.dark) .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(255, 255, 255, 0.2);
 }
 </style>
