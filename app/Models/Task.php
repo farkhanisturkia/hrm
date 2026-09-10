@@ -13,7 +13,7 @@ class Task extends Model
     protected $fillable = [
         'project_id',
         'issue',
-        'pl',
+        'pm',
         'communicator',
         'programmer',
         'designer',
@@ -26,7 +26,6 @@ class Task extends Model
         'end_date',
         'time_used',
         'isActive',
-        'isAssign',
         'creator',
         'updater',
     ];
