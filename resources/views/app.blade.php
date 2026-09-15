@@ -7,6 +7,11 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
+        <!-- PWA Meta Tags & Manifest -->
+        <link rel="manifest" href="/manifest.json">
+        <meta name="theme-color" content="#4f46e5">
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
@@ -18,5 +23,16 @@
     </head>
     <body class="font-sans antialiased">
         @inertia
+
+        <!-- Registrasi Service Worker PWA -->
+        <script>
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/sw.js')
+                        .then(reg => console.log('SW registered!', reg))
+                        .catch(err => console.error('SW registration failed!', err));
+                });
+            }
+        </script>
     </body>
 </html>
