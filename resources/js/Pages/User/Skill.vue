@@ -200,7 +200,7 @@ watch(id, (newValue) => {
               </div>
             </div>
 
-            <div class="hidden sm:flex flex-col md:flex-row gap-3 w-full md:w-auto items-end">
+            <div class="hidden sm:flex flex-wrap sm:flex-nowrap justify-end gap-3 w-full xl:w-auto">
               <button
                 @click="exportSkill"
                 class="w-full md:w-auto flex items-center justify-center gap-2 h-11 px-4 py-2 text-sm font-bold rounded-lg bg-primary-600 hover:bg-primary-500 text-white transition-all shadow-md"

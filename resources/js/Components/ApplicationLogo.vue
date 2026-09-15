@@ -1,3 +1,3 @@
 <template>
-    <img src="logo.png" alt="KNDI Logo" >
+    <img src="logo.png" alt="HRM Logo" >
 </template>

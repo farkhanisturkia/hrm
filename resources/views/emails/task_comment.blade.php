@@ -62,7 +62,7 @@
         </div>
         
         <div class="footer">
-            Dikirim otomatis oleh KNDI Task Manager System<br>
+            Dikirim otomatis oleh HRM Task Manager System<br>
             &copy; {{ date('Y') }}
         </div>
     </div>

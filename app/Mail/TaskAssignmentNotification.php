@@ -25,7 +25,7 @@ class TaskAssignmentNotification extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "[KNDI] Tugas Baru: " . $this->task->issue,
+            subject: "[HRM] Tugas Baru: " . $this->task->issue,
         );
     }
 

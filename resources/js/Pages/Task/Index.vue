@@ -170,11 +170,11 @@ watch(selectedAssign, (newValue, oldValue) => {
 
 const visibleButtons = computed(() => {
   const buttons = [];
-  buttons.push({ action: 'reset', icon: Close, handler: () => router.get(route('task.list')), text: 'Reset' });
-
   if (['manager', 'leader', 'communicator'].includes(role.value)) {
     buttons.push({ action: 'add', icon: Plus, handler: handleOpenForm, text: 'New' });
   }
+
+  buttons.push({ action: 'reset', icon: Close, handler: () => router.get(route('task.list')), text: 'Reset' });
 
   return buttons;
 });

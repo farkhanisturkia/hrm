@@ -28,7 +28,7 @@ class CommentReplyNotification extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "[KNDI] Balasan Baru dari {$this->replier->name}",
+            subject: "[HRM] Balasan Baru dari {$this->replier->name}",
         );
     }
 

@@ -50,7 +50,7 @@
         </div>
         
         <div class="footer">
-            Dikirim otomatis oleh KNDI Task Manager System
+            Dikirim otomatis oleh HRM Task Manager System
         </div>
     </div>
 </body>

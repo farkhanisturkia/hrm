@@ -28,7 +28,7 @@ class TaskCommentNotification extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "[KNDI] Komentar Baru di {$this->task->issue}",
+            subject: "[HRM] Komentar Baru di {$this->task->issue}",
         );
     }
 

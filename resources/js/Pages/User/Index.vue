@@ -193,7 +193,7 @@ const visibleButtons = computed(() => {
             </button>
 
             <button
-              v-if="['manager', 'leader', 'communicator'].includes(role)"
+              v-if="['manager', 'leader'].includes(role)"
               @click="handleOpenForm"
               class="hidden sm:flex items-center gap-2 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg shadow-md hover:shadow-primary-500/30 transition-all duration-300 transform hover:scale-105"
             >
@@ -204,7 +204,7 @@ const visibleButtons = computed(() => {
         </div>
     </div>
 
-    <div v-if="['manager', 'communicator'].includes(role)" class="fixed sm:hidden right-6 bottom-6 z-50 flex flex-col-reverse items-center gap-3">
+    <div v-if="['manager', 'leader'].includes(role)" class="fixed sm:hidden right-6 bottom-6 z-50 flex flex-col-reverse items-center gap-3">
       <button
         type="button"
         @click="showButtons = !showButtons"

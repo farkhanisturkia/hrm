@@ -181,7 +181,7 @@ const getInitials = (name) => {
                         <Hamburger :show="openMenus" />
                     </button>
                     <img src="/logo.png" alt="Logo" class="w-8 h-8 drop-shadow-md" />
-                    <span class="font-bold text-lg text-gray-800 dark:text-white tracking-tight">KNDI Task</span>
+                    <span class="font-bold text-lg text-blue-800 dark:text-white tracking-tight">HRM</span>
                 </div>
                 <button @click="showProfilePanel = true" class="relative">
                     <div v-if="user.avatar" class="w-8 h-8 rounded-none overflow-hidden border border-white/50 shadow-sm bg-gray-50 dark:bg-slate-800">
@@ -218,10 +218,8 @@ const getInitials = (name) => {
                 :class="openMenus ? 'justify-between pl-8 pr-6' : 'justify-center px-0'" 
             >
                 <div v-if="openMenus" class="flex items-center gap-3 overflow-hidden whitespace-nowrap animate-fade-in">
-                    <div class="bg-white/10 p-1.5 rounded-none shadow-lg border border-white/10">
-                        <img src="/logo.png" alt="Logo" class="w-6 h-6 shrink-0" />
-                    </div>
-                    <span class="text-white font-bold text-2xl tracking-wide">KNDI</span>
+                    <img src="/logo.png" alt="Logo" class="w-12 h-12 shrink-0" />
+                    <span class="text-blue-900 dark:text-white font-bold text-2xl tracking-wide">HRM</span>
                 </div>
                 
                 <button 

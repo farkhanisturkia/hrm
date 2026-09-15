@@ -25,7 +25,7 @@ class TaskUnassignmentNotification extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: "[KNDI] Update: Kamu dihapus dari task {$this->task->issue}",
+            subject: "[HRM] Update: Kamu dihapus dari task {$this->task->issue}",
         );
     }
 

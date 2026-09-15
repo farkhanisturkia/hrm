@@ -20,7 +20,7 @@ class TaskAssignmentRemovedNotification extends Mailable
 
     public function build()
     {
-        $subject = sprintf('[KNDI] Assignment dicabut: %s', $this->task->issue);
+        $subject = sprintf('[HRM] Assignment dicabut: %s', $this->task->issue);
         return $this->subject($subject)->view('task_assignment_removed');
     }
 }

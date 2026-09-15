@@ -30,7 +30,7 @@ class ReviewerReplyNotification extends Mailable
 
     public function build()
     {
-        $subject = sprintf('[KNDI] Reviewer membalas: %s', $this->task->issue);
+        $subject = sprintf('[HRM] Reviewer membalas: %s', $this->task->issue);
         return $this->subject($subject)->view('reviewer_reply');
     }
 }
