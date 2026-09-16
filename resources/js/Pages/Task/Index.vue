@@ -267,7 +267,7 @@ const visibleButtons = computed(() => {
         <div class="relative z-20 bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl p-4 rounded-xl shadow-lg border border-white/40 dark:border-white/10">
           <div class="flex flex-col xl:flex-row gap-4 items-end justify-between w-full">
             
-            <div class="flex flex-col sm:flex-row gap-4 w-full xl:w-auto flex-1 items-end">
+            <div class="flex flex-wrap flex-col sm:flex-row gap-4 w-full xl:w-auto flex-1 items-end">
               <div class="w-full sm:w-1/2 xl:w-72">
                   <label class="text-[10px] font-bold text-gray-500 dark:text-slate-400 mb-1 block uppercase tracking-wider">Search</label>
                   <div class="relative w-full group">
