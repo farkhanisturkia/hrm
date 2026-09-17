@@ -144,12 +144,19 @@ const exportLogtime = (summary) => {
 };
 
 const visibleButtons = computed(() => {
-  return [
-    { action: 'add', icon: Plus, handler: handleOpenForm, text: 'New' },
-    { action: 'export', icon: Download, handler: () => exportLogtime(false), text: 'Export' },
-    { action: 'exportSummary', icon: Download2, handler: () => exportLogtime(true), text: 'ExportSummary' },
-    { action: 'reset', icon: Close, handler: () => router.get(route('logtime.list')), text: 'Reset' }
-  ];
+  const buttons = [];
+  buttons.push({ action: 'add', icon: Plus, handler: handleOpenForm, text: 'New' })
+
+  if (['manager', 'communicator'].includes(role.value)) {
+    buttons.push(
+      { action: 'export', icon: Download, handler: () => exportLogtime(false), text: 'Export' },
+      { action: 'exportSummary', icon: Download2, handler: () => exportLogtime(true), text: 'ExportSummary' },
+    );
+  }
+
+  buttons.push({ action: 'reset', icon: Close, handler: () => router.get(route('logtime.list')), text: 'Reset' });
+
+  return buttons;
 });
 
 const openDetailLogtime = (item) => {
@@ -182,7 +189,6 @@ const closeDetailLogtime = () => {
           
           <div class="flex gap-4 justify-end">
             <button
-              v-if="['manager', 'communicator'].includes(role)"
               @click="handleOpenOptions"
               class="flex items-center gap-2 px-4 py-2 bg-white/50 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-700/50 text-gray-700 dark:text-gray-200 rounded-lg shadow-sm border border-white/40 dark:border-white/10 backdrop-blur-sm transition-all"
             >
@@ -201,7 +207,7 @@ const closeDetailLogtime = () => {
         </div>
     </div>
 
-    <div v-if="['manager', 'communicator'].includes(role)" class="fixed sm:hidden right-6 bottom-6 z-50 flex flex-col-reverse items-center gap-3">
+    <div class="fixed sm:hidden right-6 bottom-6 z-50 flex flex-col-reverse items-center gap-3">
       <button
         type="button"
         @click.stop="showButtons = !showButtons"
@@ -222,13 +228,6 @@ const closeDetailLogtime = () => {
         </button>
       </TransitionGroup>
     </div>
-    <button v-else
-      @click="handleOpenForm"
-      class="fixed sm:hidden right-6 bottom-6 border border-white/20 rounded-full p-4 text-white bg-primary-600 shadow-xl z-40 transition-all duration-500 ease-out hover:scale-110 active:scale-95"
-      :class="{ 'translate-y-0 opacity-100 scale-100': isLoaded, 'translate-y-12 opacity-0 scale-75': !isLoaded }"
-    >
-      <Plus />
-    </button>
 
     <div v-if="openForm" class="fixed inset-0 z-50 px-4 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity">
       <div class="bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl border border-white/50 dark:border-white/10 rounded-lg shadow-2xl max-w-lg w-full p-6 relative animate-in fade-in zoom-in duration-300">
@@ -237,7 +236,7 @@ const closeDetailLogtime = () => {
     </div>
 
     <div
-      v-if="options && ['manager', 'communicator'].includes(role)"
+      v-if="options"
       class="w-full pt-4 sm:pt-6 transition-all duration-500 ease-out relative z-30"
       :class="{ 'translate-y-0 opacity-100': isLoaded, 'translate-y-12 opacity-0': !isLoaded }"
     >
@@ -258,7 +257,7 @@ const closeDetailLogtime = () => {
                   :clearable="true"
                 />
               </div>
-              <div class="w-full sm:w-1/2 xl:w-72">
+              <div v-if="['manager', 'communicator'].includes(role)" class="w-full sm:w-1/2 xl:w-72">
                   <label class="text-[10px] font-bold text-gray-500 dark:text-slate-400 mb-1 block uppercase tracking-wider">Filter User</label>
                   <SelectInput
                     id="user"
@@ -275,6 +274,7 @@ const closeDetailLogtime = () => {
 
             <div class="hidden sm:flex flex-wrap sm:flex-nowrap justify-end gap-3 w-full xl:w-auto">
               <button 
+                v-if="['manager', 'communicator'].includes(role)"
                 @click="exportLogtime(false)" 
                 class="w-full sm:w-auto flex items-center justify-center gap-2 h-[42px] px-4 py-2 text-sm font-bold rounded-lg bg-primary-600 hover:bg-primary-700 text-white transition-all shadow-md"
               >
@@ -283,6 +283,7 @@ const closeDetailLogtime = () => {
               </button>
               
               <button 
+                v-if="['manager', 'communicator'].includes(role)"
                 @click="exportLogtime(true)" 
                 class="w-full sm:w-auto flex items-center justify-center gap-2 h-[42px] px-4 py-2 text-sm font-bold rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white transition-all shadow-md"
               >
