@@ -471,6 +471,9 @@ const visibleButtons = computed(() => {
                       </div>
                     </td>
                   </tr>
+                  <tr v-if="tasks.data.length === 0">
+                      <td colspan="6" class="p-8 text-center text-gray-400 dark:text-gray-500 italic">No tasks found.</td>
+                  </tr>
                 </tbody>
               </table>
             </div>

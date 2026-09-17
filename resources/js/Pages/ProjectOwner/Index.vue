@@ -292,6 +292,9 @@ const visibleButtons = computed(() => {
                     </div>
                   </td>
                 </tr>
+                <tr v-if="projectOwners.data.length === 0">
+                    <td :colspan="['manager', 'leader', 'communicator'].includes(role) ? 6 : 4" class="p-8 text-center text-gray-400 dark:text-gray-500 italic">No project owners found.</td>
+                </tr>
               </tbody>
             </table>
           </div>

@@ -400,8 +400,9 @@ const visibleButtons = computed(() => {
               </thead>
               <tbody class="divide-y divide-white/20 dark:divide-white/5">
                 <tr v-for="(user, idx) in users.data" :key="user.id" class="hover:bg-white/30 dark:hover:bg-white/5 transition duration-200">
-                  <td class="p-5 align-middle text-sm text-gray-500 dark:text-slate-400">{{ (users.current_page - 1) * users.per_page + idx + 1 }}</td>
-                  
+                  <td class="p-5 align-middle text-sm text-gray-500 dark:text-slate-400">
+                    {{ (users.current_page - 1) * users.per_page + idx + 1 }}
+                  </td>
                   <td class="p-5 align-middle">
                       <div class="flex items-center gap-3">
                         <div class="w-8 h-8 rounded-full bg-primary-100/50 dark:bg-slate-800 flex items-center justify-center text-primary-600 dark:text-primary-300 font-bold text-xs border border-primary-100/50 dark:border-slate-700">
@@ -410,7 +411,9 @@ const visibleButtons = computed(() => {
                         <span class="font-bold text-gray-800 dark:text-slate-200">{{ user.name }}</span>
                       </div>
                   </td>
-                  <td class="p-5 align-middle text-sm text-gray-600 dark:text-slate-400 font-mono">{{ user.email }}</td>
+                  <td class="p-5 align-middle text-sm text-gray-600 dark:text-slate-400 font-mono">
+                    {{ user.email }}
+                  </td>
                   <td class="p-5 align-middle">
                      <span :class="{
                         'bg-purple-100/50 text-purple-700 border-purple-200/50 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800/30': user.role === 'leader',
@@ -449,6 +452,11 @@ const visibleButtons = computed(() => {
                           <Pen class="w-5 h-5" />
                       </button>
                     </div>
+                  </td>
+                </tr>
+                <tr v-if="users.data.length === 0">
+                  <td :colspan="['manager', 'leader'].includes(role) ? 8 : 6" class="p-8 text-center text-gray-400 dark:text-gray-500 italic">
+                    No users found.
                   </td>
                 </tr>
               </tbody>

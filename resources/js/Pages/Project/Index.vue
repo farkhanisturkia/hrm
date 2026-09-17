@@ -338,7 +338,7 @@ const visibleButtons = computed(() => {
                   </td>
                 </tr>
                 <tr v-if="projects.data.length === 0">
-                    <td colspan="6" class="p-8 text-center text-gray-400 dark:text-gray-500 italic">No projects found.</td>
+                    <td :colspan="['manager', 'leader', 'communicator'].includes(role) ? 7 : 5" class="p-8 text-center text-gray-400 dark:text-gray-500 italic">No projects found.</td>
                 </tr>
               </tbody>
             </table>
