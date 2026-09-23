@@ -93,6 +93,58 @@ class LogtimeService
         return $logtime;
     }
 
+    public function updateLogtime(int|string $id, array $data): Logtime
+    {
+        $logtime = Logtime::with('task')->findOrFail($id);
+
+        $oldTaskTicket = $logtime->task->ticket_link ?? 'Unknown Task';
+        $oldTaskId = $logtime->task_id;
+        $oldDate = $logtime->date ? Carbon::parse($logtime->date)->format('Y-m-d') : null;
+        $oldTimeUsed = (float) $logtime->time_used;
+        $oldDescription = $logtime->description ?? 'None';
+
+        $newTask = Task::findOrFail($data['task_id']);
+        $newDate = Carbon::parse($data['date'])->format('Y-m-d');
+        $newTimeUsed = (float) ($data['time_used'] < 0 ? 1 : $data['time_used']);
+        $newDescription = $data['description'] ?? null;
+
+        $changes = [];
+
+        if ($oldTaskId !== $newTask->id) {
+            $newTaskTicket = $newTask->ticket_link ?? 'Unknown Task';
+            $changes[] = "task from '{$oldTaskTicket}' to '{$newTaskTicket}'";
+        }
+
+        if ($oldDate !== $newDate) {
+            $changes[] = "date from '{$oldDate}' to '{$newDate}'";
+        }
+
+        if ($oldTimeUsed !== $newTimeUsed) {
+            $changes[] = "time_used from '{$oldTimeUsed}' to '{$newTimeUsed}'";
+        }
+
+        if ($oldDescription !== ($newDescription ?? 'None')) {
+            $newDescLog = $newDescription ?? 'None';
+            $changes[] = "description from '{$oldDescription}' to '{$newDescLog}'";
+        }
+
+        $logtime->update([
+            'task_id'     => $newTask->id,
+            'date'        => $newDate,
+            'time_used'   => $newTimeUsed,
+            'description' => $newDescription,
+        ]);
+
+        $logtime->load('task');
+
+        if (!empty($changes)) {
+            $detailLog = implode(', ', $changes);
+            $this->createLog("[UPDATE] logtime {$oldTaskTicket} ({$detailLog})");
+        }
+
+        return $logtime;
+    }
+
     public function deleteLogtime(int|string $id): Logtime
     {
         $user = Auth::user();

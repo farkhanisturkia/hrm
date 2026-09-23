@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 use App\Models\Task;
@@ -104,6 +105,16 @@ class TaskService
                 ->orderByRaw('ISNULL(due_date), due_date ASC')
                 ->paginate(10)
                 ->withQueryString();
+        });
+    }
+
+    public function getAllTasks(): Collection
+    {
+        $tasksVersion = Cache::get('tasks_cache_version', 1);
+        $tasksKey = "all_task_t{$tasksVersion}";
+
+        return Cache::remember($tasksKey, 1800, function () {
+            return Task::get();
         });
     }
 

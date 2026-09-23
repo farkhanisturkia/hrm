@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\LogtimeService;
+use App\Services\TaskService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,7 +14,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 class LogtimeController extends Controller
 {
     public function __construct(
-        protected LogtimeService $logtimeService
+        protected LogtimeService $logtimeService,
+        protected TaskService $taskService
     ) {}
 
     public function index(Request $request): Response
@@ -22,7 +24,7 @@ class LogtimeController extends Controller
 
         return Inertia::render('User/Logtime', [
             'logtimes' => $this->logtimeService->getLogtimes($query),
-            'tasks'    => $this->logtimeService->getTasksForAuthUser(),
+            'tasks'    => $this->taskService->getAllTasks(),
             'users'    => $this->logtimeService->getUsers(),
         ]);   
     }
@@ -40,6 +42,21 @@ class LogtimeController extends Controller
         $taskTicket = $logtime->task->ticket_link ?? 'Task';
 
         return back()->with('success', "The log entry {$taskTicket} for {$logtime->time_used} hours on {$logtime->date} was successfully added!");
+    }
+
+    public function update(Request $request, int|string $id): RedirectResponse
+    {
+        $validated = $request->validate([
+            'date'        => 'required|date',
+            'task_id'     => 'required|exists:tasks,id',
+            'time_used'   => 'required|numeric',
+            'description' => 'nullable|string',
+        ]);
+
+        $logtime = $this->logtimeService->updateLogtime($id, $validated);
+        $taskTicket = $logtime->task->ticket_link ?? 'Task';
+
+        return back()->with('success', "The log entry {$taskTicket} for {$logtime->time_used} hours on {$logtime->date} was successfully updated!");
     }
 
     public function destroy(int|string $id): RedirectResponse
