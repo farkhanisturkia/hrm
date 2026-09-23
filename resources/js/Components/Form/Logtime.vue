@@ -1,5 +1,6 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
+import { watch } from 'vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -9,15 +10,50 @@ import moment from 'moment';
 const emit = defineEmits(['close']);
 
 const props = defineProps({
-    tasks: {}
+    tasks: {},
+    logtime: {
+        type: Object,
+        default: null,
+    },
+    isEdit: {
+        type: Boolean,
+        default: false,
+    },
 });
 
-const form = useForm({
+const defaultValues = {
+    id: null,
     date: moment().format('YYYY-MM-DD'),
     task_id: '',
     time_used: '',
     description: '',
-});
+};
+
+const form = useForm({ ...defaultValues });
+
+const resetToDefault = () => {
+    form.defaults({ ...defaultValues });
+    form.reset();
+    form.clearErrors();
+};
+
+watch(
+    () => [props.isEdit, props.logtime],
+    ([isEdit, logtime]) => {
+        if (isEdit && logtime) {
+            if (typeof logtime === 'object') {
+                form.id = logtime.id ?? null;
+                form.date = logtime.date ? moment(logtime.date).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD');
+                form.task_id = logtime.task_id ?? logtime.task?.id ?? '';
+                form.time_used = logtime.time_used ?? '';
+                form.description = logtime.description ?? '';
+            }
+        } else {
+            resetToDefault();
+        }
+    },
+    { immediate: true, deep: true }
+);
 
 const validateTime = () => {
     if (form.time_used < 0) {
@@ -26,15 +62,23 @@ const validateTime = () => {
 };
 
 const submitForm = () => {
-    form.post(route('logtime.store'), {
-        onFinish: () => {
-            emit('close');
-        },
-    });
+    if (props.isEdit && form.id) {
+        form.put(route('logtime.update', form.id), {
+            onSuccess: () => {
+                emit('close');
+            },
+        });
+    } else {
+        form.post(route('logtime.store'), {
+            onSuccess: () => {
+                emit('close');
+            },
+        });
+    }
 };
 
 const cancel = () => {
-    form.reset();
+    resetToDefault();
     emit('close');
 };
 </script>

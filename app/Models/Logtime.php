@@ -15,6 +15,11 @@ class Logtime extends Model
         'description',
     ];
 
+    protected $casts = [
+        'time_used' => 'float',
+        'date'      => 'date:Y-m-d',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class);

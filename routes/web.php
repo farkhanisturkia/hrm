@@ -58,7 +58,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/logtime', [LogtimeController::class, 'index'])->name('logtime.list');
     Route::get('/logtime/export', [LogtimeController::class, 'export'])->name('logtime.export')->middleware('role:manager,communicator');
     Route::post('/logtime', [LogtimeController::class, 'store'])->name('logtime.store');
-    Route::delete('/logtime/{id}', [LogtimeController::class, 'destroy'])->name('logtime.destroy')->middleware('role:manager,communicator');
+    Route::put('/logtime/{id}', [LogtimeController::class, 'update'])->name('logtime.update');
+    Route::delete('/logtime/{id}', [LogtimeController::class, 'destroy'])->name('logtime.destroy');
 
     Route::get('/log', [LogController::class, 'index'])->name('log.list')->middleware('role:leader');
 

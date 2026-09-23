@@ -7,6 +7,7 @@ export default { layout: AuthenticatedLayout };
 import Plus from '@/Components/Icon/Plus.vue';
 import Close from '@/Components/Icon/Close.vue';
 import Gear from '@/Components/Icon/Gear.vue';
+import Pen from '@/Components/Icon/Pen.vue';
 import Download from '@/Components/Icon/Download.vue';
 import Hamburger from '@/Components/Icon/Hamburger.vue';
 import Clock from '@/Components/Icon/Clock.vue';
@@ -27,6 +28,7 @@ const showButtons = ref(false);
 const openForm = ref(false);
 const isLoaded = ref(false);
 const selectedLogtime = ref(null);
+const isEditMode = ref(false);
 const showDetailLogtime = ref(false);
 const confirmDeleteModal = ref(false);
 const itemToDelete = ref(null);
@@ -69,12 +71,20 @@ const handleOpenForm = () => {
 const handleCloseForm = () => {
   openForm.value = false;
   showButtons.value = false;
+  isEditMode.value = false;
+  selectedLogtime.value = null;
 };
 
 const openDeleteModal = (id) => {
   itemToDelete.value = id;
   confirmDeleteModal.value = true;
 }
+
+const handleEdit = (item) => {
+  selectedLogtime.value = item;
+  isEditMode.value = true;
+  openForm.value = true;
+};
 
 const closeDeleteModal = () => {
   itemToDelete.value = null;
@@ -231,7 +241,12 @@ const closeDetailLogtime = () => {
 
     <div v-if="openForm" class="fixed inset-0 z-50 px-4 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity">
       <div class="bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl border border-white/50 dark:border-white/10 rounded-lg shadow-2xl max-w-lg w-full p-6 relative animate-in fade-in zoom-in duration-300">
-        <LogtimeForm :tasks="tasks" @close="handleCloseForm" />
+        <LogtimeForm 
+          :tasks="tasks" 
+          :logtime="selectedLogtime" 
+          :is-edit="isEditMode" 
+          @close="handleCloseForm" 
+        />
       </div>
     </div>
 
@@ -330,7 +345,7 @@ const closeDetailLogtime = () => {
                     <th class="p-5 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider w-48">Date</th>
                     <th class="p-5 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider">Issue</th>
                     <th class="p-5 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider w-36">Time used</th>
-                    <th v-if="['manager', 'communicator'].includes(role)" class="p-5 text-center font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider w-32">Action</th>
+                    <th class="p-5 text-center font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider w-32">Action</th>
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-white/20 dark:divide-white/5">
@@ -339,7 +354,7 @@ const closeDetailLogtime = () => {
                       <td class="py-2.5 px-5 font-bold text-primary-700 dark:text-primary-400" colspan="2">
                         {{ date }}
                       </td>
-                      <td class="py-2.5 px-5" :colspan="['manager', 'communicator'].includes(role) ? 2 : 1">
+                      <td class="py-2.5 px-5" colspan=2>
                         <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-white/50 dark:bg-slate-900/60 font-bold text-gray-800 dark:text-gray-200 border border-white/40 dark:border-white/10 shadow-sm">
                           {{ group.totalTime }} h
                         </span>
@@ -358,13 +373,19 @@ const closeDetailLogtime = () => {
                       <td class="p-5 align-middle text-sm text-gray-700 dark:text-slate-200 font-medium whitespace-nowrap">
                         {{ parseFloat(value.time_used) }} h
                       </td>
-                      <td v-if="['manager', 'communicator'].includes(role)" class="p-5 align-middle">
+                      <td class="p-5 align-middle">
                         <div class="flex justify-center gap-4">
                           <button
                             @click="openDetailLogtime(value)"
                             class="p-1.5 rounded-lg text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-500/10 transition tooltip-trigger" title="Detail"
                           >
                             <Detail class="w-5 h-5" />
+                          </button>
+                          <button 
+                            @click="handleEdit(value)" 
+                            class="p-1.5 rounded-lg text-amber-600 dark:text-amber-400 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition tooltip-trigger" title="Edit"
+                          >
+                              <Pen class="w-5 h-5" />
                           </button>
                           <button 
                             @click.prevent="openDeleteModal(value.id)" 
