@@ -180,11 +180,11 @@ const getInitials = (name) => {
                     <button @click="openMenus = !openMenus" class="p-2 text-gray-600 dark:text-gray-300 rounded-none hover:bg-white/20 focus:outline-none transition">
                         <Hamburger :show="openMenus" />
                     </button>
-                    <img src="/logo.png" alt="Logo" class="w-8 h-8 drop-shadow-md" />
-                    <span class="font-bold text-lg text-blue-800 dark:text-white tracking-tight">HRM</span>
+                    <img src="/icon_kndi.svg" alt="Logo" class="w-8 h-8 drop-shadow-md" />
+                    <span class="font-bold text-lg text-blue-800 dark:text-white tracking-tight">KNDI</span>
                 </div>
                 <button @click="showProfilePanel = true" class="relative">
-                    <div v-if="user.avatar" class="w-8 h-8 rounded-none overflow-hidden border border-white/50 shadow-sm bg-gray-50 dark:bg-slate-800">
+                    <div v-if="user.avatar" class="w-8 h-8 rounded-none overflow-hidden">
                         <img :src="user.avatar" alt="Avatar" class="w-full h-full object-contain">
                     </div>
                     <div v-else class="w-8 h-8 rounded-none bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-primary-600 dark:text-primary-300 font-bold text-sm shadow-inner">
@@ -218,8 +218,8 @@ const getInitials = (name) => {
                 :class="openMenus ? 'justify-between pl-8 pr-6' : 'justify-center px-0'" 
             >
                 <div v-if="openMenus" class="flex items-center gap-3 overflow-hidden whitespace-nowrap animate-fade-in">
-                    <img src="/logo.png" alt="Logo" class="w-12 h-12 shrink-0" />
-                    <span class="text-blue-900 dark:text-white font-bold text-2xl tracking-wide">HRM</span>
+                    <img src="/icon_kndi.svg" alt="Logo" class="w-12 h-12 shrink-0" />
+                    <span class="text-blue-900 dark:text-white font-bold text-2xl tracking-wide">KNDI</span>
                 </div>
                 
                 <button 
@@ -257,7 +257,7 @@ const getInitials = (name) => {
                         @click="showProfilePanel = !showProfilePanel"
                         class="flex items-center gap-3 p-1.5 pr-5 rounded-none bg-white dark:bg-slate-800 shadow-sm hover:shadow-lg transition-all duration-300 group border border-gray-200 dark:border-white/10"
                     >
-                        <div v-if="user.avatar" class="w-10 h-10 rounded-none overflow-hidden border border-gray-100 dark:border-slate-700 bg-gray-50 dark:bg-slate-900">
+                        <div v-if="user.avatar" class="w-10 h-10 rounded-none overflow-hidden">
                              <img :src="user.avatar" alt="User Avatar" class="w-full h-full object-contain">
                         </div>
                         <div v-else class="w-10 h-10 rounded-none bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-primary-600 dark:text-primary-300 font-bold text-sm">
@@ -298,10 +298,10 @@ const getInitials = (name) => {
 
                 <div class="flex flex-col items-center mb-8 w-full">
                     <div class="relative group cursor-pointer mb-6" @click="openAvatarModal">
-                        <div class="w-24 h-24 rounded-none bg-primary-50 dark:bg-slate-800 border-4 border-gray-100 dark:border-slate-700 shadow-xl flex items-center justify-center text-3xl font-bold text-primary-600 relative overflow-hidden">
+                        <div class="w-24 h-24 shadow-xl flex items-center justify-center text-3xl font-bold text-primary-600 relative overflow-hidden">
                             <img v-if="user.avatar" :src="user.avatar" class="w-full h-full object-contain" alt="Profile">
                             <span v-else>{{ getInitials(user.name) }}</span>
-                            <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <span class="text-white font-bold text-xs">CHANGE</span>
                             </div>
                         </div>
