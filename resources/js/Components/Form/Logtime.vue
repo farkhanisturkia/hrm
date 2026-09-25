@@ -10,7 +10,14 @@ import moment from 'moment';
 const emit = defineEmits(['close']);
 
 const props = defineProps({
-    tasks: {},
+    tasks: {
+        type: [Array, Object],
+        default: () => [],
+    },
+    selectedTaskId: {
+        type: [Number, String],
+        default: null,
+    },
     logtime: {
         type: Object,
         default: null,
@@ -24,7 +31,7 @@ const props = defineProps({
 const defaultValues = {
     id: null,
     date: moment().format('YYYY-MM-DD'),
-    task_id: '',
+    task_id: props.selectedTaskId ?? '',
     time_used: '',
     description: '',
 };
@@ -32,19 +39,22 @@ const defaultValues = {
 const form = useForm({ ...defaultValues });
 
 const resetToDefault = () => {
-    form.defaults({ ...defaultValues });
+    form.defaults({ 
+        ...defaultValues, 
+        task_id: props.selectedTaskId ?? '' 
+    });
     form.reset();
     form.clearErrors();
 };
 
 watch(
-    () => [props.isEdit, props.logtime],
-    ([isEdit, logtime]) => {
+    () => [props.isEdit, props.logtime, props.selectedTaskId],
+    ([isEdit, logtime, selectedTaskId]) => {
         if (isEdit && logtime) {
             if (typeof logtime === 'object') {
                 form.id = logtime.id ?? null;
                 form.date = logtime.date ? moment(logtime.date).format('YYYY-MM-DD') : moment().format('YYYY-MM-DD');
-                form.task_id = logtime.task_id ?? logtime.task?.id ?? '';
+                form.task_id = logtime.task_id ?? logtime.task?.id ?? selectedTaskId ?? '';
                 form.time_used = logtime.time_used ?? '';
                 form.description = logtime.description ?? '';
             }
@@ -85,7 +95,9 @@ const cancel = () => {
 
 <template>
     <div class="space-y-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Add New Logtime</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+            {{ isEdit ? 'Edit Logtime' : 'Add New Logtime' }}
+        </h3>
         <form @submit.prevent="submitForm" class="space-y-4">
             <div>
                 <InputLabel for="date" value="Date" />
@@ -100,7 +112,7 @@ const cancel = () => {
                 <InputError class="mt-2" :message="form.errors.date" />
             </div>
 
-            <div>
+            <div v-if="!selectedTaskId">
                 <InputLabel for="type" value="Task" />
                 <SelectInput
                     id="type"
@@ -117,7 +129,7 @@ const cancel = () => {
             </div>
 
             <div>
-                <InputLabel for="time_used" value="Time used" />
+                <InputLabel for="time_used" value="Time used (hours)" />
                 <TextInput
                     id="time_used"
                     type="number"
@@ -141,6 +153,7 @@ const cancel = () => {
                     class="mt-1 block w-full bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm dark:border-white/10 dark:text-white"
                     v-model="form.description"
                 />
+                <InputError class="mt-2" :message="form.errors.description" />
             </div>
 
             <div class="flex justify-end gap-4 pt-2">

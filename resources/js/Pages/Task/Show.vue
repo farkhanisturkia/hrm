@@ -6,6 +6,7 @@ export default { layout: AuthenticatedLayout };
 
 <script setup>
 import Pen from '@/Components/Icon/Pen.vue';
+import Time from '@/Components/Icon/Time.vue';
 import Close from '@/Components/Icon/Close.vue';
 import Hamburger from '@/Components/Icon/Hamburger.vue';
 import User from '@/Components/Icon/User.vue';
@@ -16,6 +17,7 @@ import TaskAssignForm from '@/Components/Form/TaskAssign.vue';
 import TaskPrForm from '@/Components/Form/TaskPr.vue';
 import TaskCommentForm from '@/Components/Form/TaskComment.vue';
 import TaskReplyForm from '@/Components/Form/TaskReply.vue';
+import LogtimeForm from '@/Components/Form/Logtime.vue';
 import CloseTaskConfirmationModal from '@/Components/CloseTaskConfirmationModal.vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { ref, computed, onMounted } from 'vue';
@@ -31,7 +33,8 @@ const isEditMode = ref(false);
 const selectedTask = ref(null);
 const selectedComment = ref(null);
 const isLoaded = ref(false);
-const confirmCloseModal = ref(false)
+const confirmCloseModal = ref(false);
+const openFormLogtime = ref(false);
 
 onMounted(() => {
   setTimeout(() => {
@@ -46,6 +49,16 @@ const role = computed(() => page.props.auth.user.role);
 // --- Handle Back ---
 const handleBack = () => {
   router.get(route('task.list'));
+};
+
+const handleLogtime = () => {
+  openFormLogtime.value = true;
+  console.log('aaa')
+};
+
+const handleCloseFormLogtime = () => {
+  openFormLogtime.value = false;
+  showButtons.value = false;
 };
 
 const handleEdit = () => {
@@ -179,6 +192,9 @@ const logtimeSegments = computed(() => {
 
 const visibleButtons = computed(() => {
   const buttons = [];
+
+  buttons.push({ action: 'logtime', icon: Time, handler: handleLogtime, text: 'Logtime'})
+
   if (['manager', 'leader'].includes(role.value)) {
     buttons.push({ action: 'assign', icon: User, handler: handleAssign, text: 'Assign' });
   }
@@ -541,6 +557,15 @@ const visibleButtons = computed(() => {
       @close="closeCloseModal"
       @confirm="handleConfirmClose"
     />
+
+    <div v-if="openFormLogtime" class="fixed inset-0 z-50 px-4 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity">
+      <div class="bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl border border-white/50 dark:border-white/10 rounded-lg shadow-2xl max-w-lg w-full p-6 relative animate-in fade-in zoom-in duration-300">
+        <LogtimeForm 
+          :selected-task-id="task.id"
+          @close="handleCloseFormLogtime" 
+        />
+      </div>
+    </div>
   </div>
 </template>
 
