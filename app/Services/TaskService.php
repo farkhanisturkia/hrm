@@ -36,7 +36,7 @@ class TaskService
                     'users'        => $allUsers,
                     'creator'      => $allUsers->whereIn('role', ['manager', 'leader', 'communicator'])->values(),
                     'communicator' => $allUsers->where('role', 'communicator')->values(),
-                    'programmer'   => $allUsers->whereIn('role', ['engineer', 'leader'])->values(),
+                    'engineer'     => $allUsers->whereIn('role', ['engineer', 'leader'])->values(),
                     'designer'     => $allUsers->where('role', 'designer')->values(),
                 ],
             ];
@@ -74,7 +74,7 @@ class TaskService
                 $query->where(function ($q) use ($assignId) {
                     $q->where('pm', $assignId)
                     ->orWhereJsonContains('communicator', $assignId)
-                    ->orWhereJsonContains('programmer', $assignId)
+                    ->orWhereJsonContains('engineer', $assignId)
                     ->orWhereJsonContains('designer', $assignId);
                 });
             }
@@ -94,7 +94,7 @@ class TaskService
             if ($user->role === 'engineer') {
                 $query->where(function ($q) use ($user) {
                     $q->where('pm', $user->id)
-                    ->orwhereJsonContains('programmer', $user->id)
+                    ->orwhereJsonContains('engineer', $user->id)
                     ->orWhereJsonContains('reviewer', $user->id);
                 });
             } elseif ($user->role === 'designer') {
@@ -228,14 +228,14 @@ class TaskService
     public function assignTask(Task $task, array $data): void
     {
         $oldAssignments = [
-            'Programmer' => $task->programmer ?? [],
+            'Engineer' => $task->engineer ?? [],
             'Designer' => $task->designer ?? [],
             'Communicator' => $task->communicator ?? []
         ];
 
         $task->update([
             'pm' => $data['pm'] ?? null,
-            'programmer'   => !empty($data['programmer']) ? $data['programmer'] : null,
+            'engineer'   => !empty($data['engineer']) ? $data['engineer'] : null,
             'designer'     => !empty($data['designer']) ? $data['designer'] : null,
             'communicator' => !empty($data['communicator']) ? $data['communicator'] : null,
         ]);
@@ -243,7 +243,7 @@ class TaskService
         $this->createLog("[ASSIGN] {$task->issue}");
 
         $newAssignments = [
-            'Programmer' => $data['programmer'] ?? [],
+            'Engineer' => $data['engineer'] ?? [],
             'Designer' => $data['designer'] ?? [],
             'Communicator' => $data['communicator'] ?? [],
         ];

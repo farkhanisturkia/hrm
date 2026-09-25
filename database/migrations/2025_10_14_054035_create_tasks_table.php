@@ -17,7 +17,7 @@ return new class extends Migration
             $table->string('issue');
             $table->unsignedInteger('pm')->nullable();
             $table->json('communicator')->nullable();
-            $table->json('programmer')->nullable();
+            $table->json('engineer')->nullable();
             $table->json('designer')->nullable();
             $table->json('reviewer')->nullable();
             $table->string('ticket_link');

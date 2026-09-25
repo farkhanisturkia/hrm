@@ -183,7 +183,7 @@ const visibleButtons = computed(() => {
     buttons.push({ action: 'assign', icon: User, handler: handleAssign, text: 'Assign' });
   }
   if (
-    (['leader', 'engineer', 'designer'].includes(role.value) && [props.task?.programmer, props.task?.designer].some(arr => arr?.includes(id.value))) ||
+    (['leader', 'engineer', 'designer'].includes(role.value) && [props.task?.engineer, props.task?.designer].some(arr => arr?.includes(id.value))) ||
     ['manager'].includes(role.value)
   ) {
     buttons.push({ action: 'review', icon: UserPlus, handler: handlePr, text: 'Review' });
@@ -191,7 +191,7 @@ const visibleButtons = computed(() => {
   if (
     props.task?.pm === id.value ||
     ['manager'].includes(role.value) ||
-    [props.task?.communicator, props.task?.programmer, props.task?.designer, props.task?.reviewer].some(arr => arr?.includes(id.value))
+    [props.task?.communicator, props.task?.engineer, props.task?.designer, props.task?.reviewer].some(arr => arr?.includes(id.value))
   ) {
     buttons.push({ action: 'comment', icon: Chat, handler: handleComment, text: 'Comment' });
   }
@@ -282,13 +282,13 @@ const visibleButtons = computed(() => {
 
     <div v-if="openAssignForm" class="fixed inset-0 z-[100] px-4 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity">
       <div class="bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl border border-white/50 dark:border-white/10 rounded-lg shadow-2xl max-w-lg w-full p-6 relative animate-in fade-in zoom-in duration-200">
-        <TaskAssignForm :task="selectedTask" :pm="userData.users" :communicator="userData.communicator" :engineer="userData.programmer" :designer="userData.designer" @close="handleCloseForm" />
+        <TaskAssignForm :task="selectedTask" :pm="userData.users" :communicator="userData.communicator" :engineer="userData.engineer" :designer="userData.designer" @close="handleCloseForm" />
       </div>
     </div>
 
     <div v-if="openPrForm" class="fixed inset-0 z-[100] px-4 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity">
       <div class="bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl border border-white/50 dark:border-white/10 rounded-lg shadow-2xl max-w-lg w-full p-6 relative animate-in fade-in zoom-in duration-200">
-        <TaskPrForm :task="selectedTask" :engineer="userData.programmer" @close="handleCloseForm" />
+        <TaskPrForm :task="selectedTask" :engineer="userData.engineer" @close="handleCloseForm" />
       </div>
     </div>
 
@@ -364,8 +364,8 @@ const visibleButtons = computed(() => {
                   <span class="text-sm font-medium text-gray-700 dark:text-slate-300">{{ formatJsonList(task.communicator) }}</span>
               </div>
               <div class="flex flex-col gap-1">
-                  <span class="text-sm font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Programmer</span>
-                  <span class="text-sm font-medium text-gray-700 dark:text-slate-300">{{ formatJsonList(task.programmer) }}</span>
+                  <span class="text-sm font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Engineer</span>
+                  <span class="text-sm font-medium text-gray-700 dark:text-slate-300">{{ formatJsonList(task.engineer) }}</span>
               </div>
               <div class="flex flex-col gap-1">
                   <span class="text-sm font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide">Designer</span>

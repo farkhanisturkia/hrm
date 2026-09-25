@@ -34,7 +34,7 @@ class DashboardController extends Controller
         $usersKey = "all_user_u{$usersVersion}_t{$tasksVersion}";
         $users = Cache::remember($usersKey, 1800, function () {
             $activeTasks = Task::where('isActive', true)
-                ->select(['id', 'programmer', 'designer', 'communicator'])
+                ->select(['id', 'engineer', 'designer', 'communicator'])
                 ->get();
 
             $users = User::where('role', '!=', 'manager')
@@ -43,15 +43,15 @@ class DashboardController extends Controller
 
             return $users->map(function ($user) use ($activeTasks) {
                 $user->total_tasks = $activeTasks->filter(function ($task) use ($user) {
-                    $programmers   = is_array($task->programmer) ? $task->programmer : json_decode($task->programmer ?? '[]', true);
+                    $engineers   = is_array($task->engineer) ? $task->engineer : json_decode($task->engineer ?? '[]', true);
                     $designers     = is_array($task->designer) ? $task->designer : json_decode($task->designer ?? '[]', true);
                     $communicators = is_array($task->communicator) ? $task->communicator : json_decode($task->communicator ?? '[]', true);
 
-                    $programmers   = is_array($programmers) ? $programmers : [];
+                    $engineers   = is_array($engineers) ? $engineers : [];
                     $designers     = is_array($designers) ? $designers : [];
                     $communicators = is_array($communicators) ? $communicators : [];
 
-                    return in_array($user->id, $programmers) ||
+                    return in_array($user->id, $engineers) ||
                            in_array($user->id, $designers) ||
                            in_array($user->id, $communicators);
                 })->count();

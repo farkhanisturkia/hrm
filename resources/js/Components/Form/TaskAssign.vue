@@ -20,8 +20,8 @@ const initialComunicators = Array.isArray(props.task?.communicator)
     ? props.task.communicator
     : [''];
 
-const initialProgrammers = Array.isArray(props.task?.programmer)
-    ? props.task.programmer
+const initialEngineers = Array.isArray(props.task?.engineer)
+    ? props.task.engineer
     : [''];
 
 const initialDesigners = Array.isArray(props.task?.designer)
@@ -31,14 +31,14 @@ const initialDesigners = Array.isArray(props.task?.designer)
 const form = useForm({
     pm: props.task?.pm || '',
     communicator: initialComunicators,
-    programmer: initialProgrammers,
+    engineer: initialEngineers,
     designer: initialDesigners,
     _method: 'PUT',
 });
 
 const submitForm = () => {
     form.communicator = form.communicator.filter(value => value !== '');
-    form.programmer = form.programmer.filter(value => value !== '');
+    form.engineer = form.engineer.filter(value => value !== '');
     form.designer = form.designer.filter(value => value !== '');
 
     form.post(route('task.assignTask', props.task.id), {
@@ -58,15 +58,15 @@ const removeCommunicator = (index) => {
     }
 };
 
-const addProgrammer = () => {
-    form.programmer.push('');
+const addEngineer = () => {
+    form.engineer.push('');
 };
 
-const removeProgrammer = (index) => {
-    if (form.programmer.length > 1) {
-        form.programmer.splice(index, 1);
+const removeEngineer = (index) => {
+    if (form.engineer.length > 1) {
+        form.engineer.splice(index, 1);
     } else {
-        form.programmer = []
+        form.engineer = []
     }
 };
 
@@ -143,35 +143,35 @@ const cancel = () => {
                 </div>
 
                 <div>
-                    <InputLabel value="Programmers" />
-                    <div v-for="(link, index) in form.programmer" :key="'engineer-' + index" class="mt-1 flex items-center gap-2">
+                    <InputLabel value="Engineers" />
+                    <div v-for="(link, index) in form.engineer" :key="'engineer-' + index" class="mt-1 flex items-center gap-2">
                         <SelectInput
                             :id="'engineer_link_' + index"
-                            v-model="form.programmer[index]"
+                            v-model="form.engineer[index]"
                             :options="engineer"
-                            :array="form.programmer"
+                            :array="form.engineer"
                             label="name"
                             valueKey="id"
                             class="mt-1 block w-full"
-                            placeholder="Search or select a Programmer..."
+                            placeholder="Search or select a Engineer..."
                             :dark="true"
                         />
                         <button
                             type="button"
-                            @click="removeProgrammer(index)"
+                            @click="removeEngineer(index)"
                             class="p-2.5 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 border border-gray-300 dark:border-white/10 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors bg-white/50 dark:bg-slate-800/50"
                             title="Remove"
                         >
                             <Close class="w-4 h-4" />
                         </button>
                     </div>
-                    <InputError class="mt-2" :message="form.errors.programmer" />
+                    <InputError class="mt-2" :message="form.errors.engineer" />
                     <button
                         type="button"
-                        @click="addProgrammer"
+                        @click="addEngineer"
                         class="mt-2 px-3 py-1.5 text-sm font-bold text-white bg-green-600 rounded-md hover:bg-green-700 shadow-sm transition-colors flex items-center gap-1"
                     >
-                        <Plus class="w-3 h-3" /> Add Programmer
+                        <Plus class="w-3 h-3" /> Add Engineer
                     </button>
                 </div>
 

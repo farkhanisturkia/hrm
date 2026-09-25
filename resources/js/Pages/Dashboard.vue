@@ -31,7 +31,6 @@ const formatDate = (date) => {
   return date ? moment(date).format('DD MMMM YYYY') : '-';
 };
 
-// Logic untuk selalu mengisi tabel task menjadi minimal 10 baris
 const paddedTasks = computed(() => {
   const list = [...props.tasks];
   while (list.length < 10) {
@@ -90,9 +89,9 @@ const paddedTasks = computed(() => {
 
                       <template v-else>
                         <td class="p-4 align-middle text-sm">
-                          <template v-if="task.programmer?.length || task.designer?.length || task.communicator?.length">
+                          <template v-if="task.engineer?.length || task.designer?.length || task.communicator?.length">
                             <div class="flex flex-wrap gap-1">
-                                <span v-for="(id, i) in [...(task.programmer || []), ...(task.designer || []), ...(task.communicator || [])]" :key="id" 
+                                <span v-for="(id, i) in [...(task.engineer || []), ...(task.designer || []), ...(task.communicator || [])]" :key="id" 
                                       class="inline-block px-2 py-0.5 rounded-md bg-primary-50/50 dark:bg-primary-500/10 border border-primary-100/50 dark:border-primary-500/20 text-sm text-primary-700 dark:text-primary-300">
                                   {{ users.find(m => m.id === id)?.name ?? id }}
                                 </span>

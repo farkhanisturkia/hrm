@@ -56,7 +56,7 @@ const handleOpenOptions = () => {
 const getTaskRoleStatus = (task) => {
   const userId = currentUserId.value;
   const handlers = [
-    ...(task.programmer || []),
+    ...(task.engineer || []),
     ...(task.designer || []),
     ...(task.communicator || []),
     ...(task.pm ? [task.pm] : [])
@@ -254,7 +254,7 @@ const visibleButtons = computed(() => {
 
     <div v-if="openAssignForm" class="fixed inset-0 z-[100] px-4 flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity">
       <div class="bg-white/90 dark:bg-slate-900/95 backdrop-blur-2xl border border-white/50 dark:border-white/10 rounded-lg shadow-2xl max-w-lg w-full p-6 relative animate-in fade-in zoom-in duration-200">
-        <TaskAssignForm :task="selectedTask" :pm="userData.users" :communicator="userData.communicator" :engineer="userData.programmer" :designer="userData.designer" @close="handleCloseForm" />
+        <TaskAssignForm :task="selectedTask" :pm="userData.users" :communicator="userData.communicator" :engineer="userData.engineer" :designer="userData.designer" @close="handleCloseForm" />
       </div>
     </div>
 
@@ -388,14 +388,14 @@ const visibleButtons = computed(() => {
                     
                     <td class="px-4 py-3 align-middle text-sm min-w-[180px]">
                       <div class="grid grid-cols-2 gap-1.5">
-                           <span v-for="(id, idx) in [...(task.pm ? [task.pm] : []), ...(task.programmer || []), ...(task.designer || []), ...(task.communicator || [])]" 
+                           <span v-for="(id, idx) in [...(task.pm ? [task.pm] : []), ...(task.engineer || []), ...(task.designer || []), ...(task.communicator || [])]" 
                               :key="idx"
                               class="block px-2 py-1 rounded-md bg-white/50 dark:bg-slate-800/40 border border-gray-200 dark:border-white/10 text-xs text-gray-700 dark:text-slate-300 text-center truncate"
                               :title="userData.users.find(u => u.id === id)?.name || id"
                            >
                               {{ userData.users.find(u => u.id === id)?.name || id }}
                            </span>
-                           <span v-if="![...(task.programmer || []), ...(task.designer || []), ...(task.communicator || [])].length" class="text-gray-400 text-sm italic col-span-2 text-center">-</span>
+                           <span v-if="![...(task.engineer || []), ...(task.designer || []), ...(task.communicator || [])].length" class="text-gray-400 text-sm italic col-span-2 text-center">-</span>
                       </div>
                     </td>
 

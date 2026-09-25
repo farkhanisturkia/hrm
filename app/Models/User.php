@@ -80,7 +80,7 @@ class User extends Authenticatable
     {
         return $this->hasMany(Task::class, 'id', 'id')
             ->whereRaw('(
-                JSON_CONTAINS(programmer, CAST(users.id AS JSON)) OR 
+                JSON_CONTAINS(engineer, CAST(users.id AS JSON)) OR 
                 JSON_CONTAINS(designer, CAST(users.id AS JSON)) OR 
                 JSON_CONTAINS(communicator, CAST(users.id AS JSON))
             )');

@@ -55,7 +55,7 @@ class LogtimeService
 
             if ($auth->role === 'engineer') {
                 $tasksQuery->where(function ($q) use ($auth) {
-                    $q->whereJsonContains('programmer', $auth->id)
+                    $q->whereJsonContains('engineer', $auth->id)
                       ->orWhereJsonContains('reviewer', $auth->id);
                 });
             } elseif ($auth->role === 'designer') {

@@ -85,7 +85,7 @@ const cancel = () => {
                     :class="{ 'border-red-500': form.errors.role }"
                 >
                     <option value="leader">Project Leader</option>
-                    <option value="engineer">Programmer</option>
+                    <option value="engineer">Engineer</option>
                     <option value="Communicator">Communicator</option>
                     <option value="designer">Designer</option>
                     <option value="manager">Manager</option>

@@ -82,11 +82,11 @@ class TaskController extends Controller
         $request->validate([
             'pm'           => 'nullable|numeric',
             'communicator' => 'array',
-            'programmer'   => 'array',
+            'engineer'   => 'array',
             'designer'     => 'array',
         ]);
 
-        $this->taskService->assignTask($task, $request->only(['pm', 'communicator', 'programmer', 'designer']));
+        $this->taskService->assignTask($task, $request->only(['pm', 'communicator', 'engineer', 'designer']));
 
         return back()->with('success', 'Task berhasil di-assign!');
     }

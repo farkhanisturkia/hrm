@@ -64,7 +64,7 @@ class TaskNotificationService
         $recepientIds = collect([
             $task->creator,
             $task->pl,
-            ...($task->programmer ?? []),
+            ...($task->engineer ?? []),
             ...($task->designer ?? []),
             ...($task->communicator ?? []),
             ...($task->reviewer ?? []),

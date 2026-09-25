@@ -137,7 +137,7 @@ const handleFileChange = (e) => {
 const formatRole = (role) => {
   const roles = {
     'leader': 'Leader',
-    'engineer': 'Programmer',
+    'engineer': 'Engineer',
     'communicator': 'Communicator',
     'designer': 'Designer',
     'manager': 'Manager'
@@ -302,7 +302,7 @@ const visibleButtons = computed(() => {
             <div class="relative">
                 <select id="role" v-model="form.role" class="mt-1 block w-full border-gray-300 dark:border-white/10 bg-white/50 dark:bg-slate-800/50 dark:text-slate-200 focus:border-primary-500 focus:ring-primary-500 rounded-lg shadow-sm backdrop-blur-sm transition cursor-pointer py-2.5">
                   <option value="leader">Leader</option>
-                  <option value="engineer">Programmer</option>
+                  <option value="engineer">Engineer</option>
                   <option value="designer">Designer</option>
                   <option value="communicator">Communicator</option>
                   <option value="manager">Manager</option>

@@ -15,10 +15,10 @@ const props = defineProps({
 });
 
 const availableReviewers = computed(() => {
-    const assignProgrammerId = props.task?.programmer || [];
+    const assignEngineerId = props.task?.engineer || [];
 
     if (Array.isArray(props.engineer)) {
-        return props.engineer.filter(user => !assignProgrammerId.includes(user.id));
+        return props.engineer.filter(user => !assignEngineerId.includes(user.id));
     }
     return [];
 });

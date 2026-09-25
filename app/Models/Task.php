@@ -15,7 +15,7 @@ class Task extends Model
         'issue',
         'pm',
         'communicator',
-        'programmer',
+        'engineer',
         'designer',
         'reviewer',
         'ticket_link',
@@ -59,7 +59,7 @@ class Task extends Model
     {
         return [
             'communicator' => 'array',
-            'programmer' => 'array',
+            'engineer' => 'array',
             'designer' => 'array',
             'reviewer' => 'array',
             'related_links' => 'array',
