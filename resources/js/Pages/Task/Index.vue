@@ -412,7 +412,7 @@ const visibleButtons = computed(() => {
 
                     <td class="px-4 py-3 align-middle text-sm text-gray-700 dark:text-slate-200 whitespace-nowrap">{{ task.project?.name || '-' }}</td>
                     <td class="px-4 py-3 align-middle">
-                      <a :href="'//' + task.ticket_link" target="_blank" class="text-sm text-primary-600 dark:text-primary-400 hover:underline truncate block max-w-[200px]">
+                      <a :href="task.ticket_link" target="_blank" class="text-sm text-primary-600 dark:text-primary-400 hover:underline truncate block max-w-[200px]">
                         {{ task.ticket_link }}
                       </a>
                     </td>
