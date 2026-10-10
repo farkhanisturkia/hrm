@@ -60,7 +60,50 @@ watch(unreadCount, (newVal, oldVal) => {
 // Polling interval
 let pollInterval = null;
 
+// Logic Switcher Theme
+const currentTheme = ref('system');
+const isDropdownOpen = ref(false);
+
+const selectTheme = (mode) => {
+    currentTheme.value = mode;
+    localStorage.setItem('theme', mode);
+    isDropdownOpen.value = false;
+
+    const isSystemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+    if (mode === 'dark' || (mode === 'system' && isSystemDark)) {
+        document.documentElement.classList.add('dark');
+    } else {
+        document.documentElement.classList.remove('dark');
+    }
+};
+
+const closeThemeDropdown = (e) => {
+    if (!e.target.closest('#theme-dropdown-container')) {
+        isDropdownOpen.value = false;
+    }
+};
+
+let mediaQueryListener = null;
+let mediaQueryList = null;
+
 onMounted(() => {
+    const savedTheme = localStorage.getItem('theme') || 'system';
+    selectTheme(savedTheme);
+
+    mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQueryListener = (e) => {
+        if (currentTheme.value === 'system') {
+            if (e.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        }
+    };
+    mediaQueryList.addEventListener('change', mediaQueryListener);
+    window.addEventListener('click', closeThemeDropdown);
+
     pollInterval = setInterval(() => {
         router.reload({
             only: ['notifications', 'unreadNotificationCount'],
@@ -83,7 +126,19 @@ onMounted(() => {
     }, 10000);
 });
 
-// Format tanggal notifikasi agar rapi
+onUnmounted(() => {
+    document.body.style.overflow = '';
+    if (pollInterval) {
+        clearInterval(pollInterval);
+    }
+    removeRouterListener();
+
+    window.removeEventListener('click', closeThemeDropdown);
+    if (mediaQueryList && mediaQueryListener) {
+        mediaQueryList.removeEventListener('change', mediaQueryListener);
+    }
+});
+
 const formatDate = (dateString) => {
     if (!dateString) return '';
     try {
@@ -267,14 +322,6 @@ watch(showProfilePanel, (isOpen) => {
     }
 });
 
-onUnmounted(() => {
-    document.body.style.overflow = '';
-    if (pollInterval) {
-        clearInterval(pollInterval);
-    }
-    removeRouterListener();
-});
-
 const logout = () => { router.post(route('logout')); };
 const getInitials = (name) => {
     if (!name) return 'U';
@@ -286,7 +333,7 @@ const getInitials = (name) => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-[url('/background/BGlight-TM.jpg.jpeg')] bg-cover bg-center bg-fixed bg-no-repeat dark:bg-[url('/background/dark_theme.jpg')] dark:bg-cover dark:bg-center dark:bg-fixed dark:bg-no-repeat font-sans text-slate-600 dark:text-slate-300 relative selection:bg-primary-500 selection:text-white transition-colors duration-500">
+    <div class="min-h-screen bg-[url('/background/BGlight-TM.jpg')] bg-cover bg-center bg-fixed bg-no-repeat dark:bg-[url('/background/BG-TM.jpg')] dark:bg-cover dark:bg-center dark:bg-fixed dark:bg-no-repeat font-sans text-slate-600 dark:text-slate-300 relative selection:bg-primary-500 selection:text-white transition-colors duration-500">
         <Head :title="title" />
 
         <!-- Mobile Nav -->
@@ -552,7 +599,68 @@ const getInitials = (name) => {
             bg-white dark:bg-slate-900 rounded-none"
             :class="showProfilePanel ? 'translate-x-0' : 'translate-x-full'"
         >
-            <div class="sticky top-0 right-0 flex justify-end p-4 z-[80] bg-white dark:bg-slate-900">
+            <div class="sticky top-0 right-0 flex items-center justify-between p-4 z-[80] bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-white/5">
+                <!-- Theme Dropdown (Minimalist Icon Only) -->
+                <div id="theme-dropdown-container" class="relative">
+                    <button 
+                        type="button"
+                        @click.stop="isDropdownOpen = !isDropdownOpen"
+                        class="flex items-center gap-1.5 p-2 rounded-md bg-gray-50 dark:bg-slate-800 border border-slate-200/50 dark:border-slate-700/50 text-slate-700 dark:text-slate-200 shadow-sm hover:bg-gray-100 dark:hover:bg-slate-700 transition-all"
+                        :title="`Theme: ${currentTheme}`"
+                    >
+                        <svg v-if="currentTheme === 'light'" class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                        <svg v-else-if="currentTheme === 'dark'" class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                        <svg v-else class="w-4 h-4 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+
+                        <svg class="w-3 h-3 text-slate-400 transition-transform duration-200" :class="{ 'rotate-180': isDropdownOpen }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+
+                    <!-- Dropdown Menu -->
+                    <Transition
+                        enter-active-class="transition duration-150 ease-out"
+                        enter-from-class="transform scale-95 opacity-0 -translate-y-1"
+                        enter-to-class="transform scale-100 opacity-100 translate-y-0"
+                        leave-active-class="transition duration-100 ease-in"
+                        leave-from-class="transform scale-100 opacity-100 translate-y-0"
+                        leave-to-class="transform scale-95 opacity-0 -translate-y-1"
+                    >
+                        <div 
+                            v-if="isDropdownOpen" 
+                            class="absolute left-0 mt-2 w-32 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl overflow-hidden py-1 z-50"
+                        >
+                            <button 
+                                type="button" 
+                                @click="selectTheme('light')"
+                                class="w-full flex items-center gap-2 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-slate-100 dark:hover:bg-slate-700/60"
+                                :class="currentTheme === 'light' ? 'text-blue-600 dark:text-blue-400 font-bold bg-slate-50 dark:bg-slate-700/40' : 'text-slate-700 dark:text-slate-300'"
+                            >
+                                <svg class="w-3.5 h-3.5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                                <span>Light</span>
+                            </button>
+
+                            <button 
+                                type="button" 
+                                @click="selectTheme('dark')"
+                                class="w-full flex items-center gap-2 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-slate-100 dark:hover:bg-slate-700/60"
+                                :class="currentTheme === 'dark' ? 'text-blue-600 dark:text-blue-400 font-bold bg-slate-50 dark:bg-slate-700/40' : 'text-slate-700 dark:text-slate-300'"
+                            >
+                                <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+                                <span>Dark</span>
+                            </button>
+
+                            <button 
+                                type="button" 
+                                @click="selectTheme('system')"
+                                class="w-full flex items-center gap-2 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-slate-100 dark:hover:bg-slate-700/60"
+                                :class="currentTheme === 'system' ? 'text-blue-600 dark:text-blue-400 font-bold bg-slate-50 dark:bg-slate-700/40' : 'text-slate-700 dark:text-slate-300'"
+                            >
+                                <svg class="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                <span>System</span>
+                            </button>
+                        </div>
+                    </Transition>
+                </div>
+
                 <button 
                     @click="showProfilePanel = false" 
                     class="flex items-center justify-center w-10 h-10 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-none transition-all duration-200"
