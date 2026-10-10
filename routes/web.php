@@ -12,10 +12,15 @@ use App\Http\Controllers\ImportController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\AttendanceController;
 use Illuminate\Foundation\Application;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', function () {
+    if (Auth::check()) {
+        return redirect()->route(Auth::user()->landingRoute());
+    }
+
     return Inertia::render('Welcome');
 })->name('welcome');
 

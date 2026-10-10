@@ -61,6 +61,17 @@ class User extends Authenticatable
         return $this->role === $role;
     }
 
+    /**
+     * Get the route name where the user should land after login
+     * or when visiting the root URL while authenticated.
+     */
+    public function landingRoute(): string
+    {
+        return in_array($this->role, ['engineer', 'designer', 'communicator'])
+            ? 'task.list'
+            : 'dashboard';
+    }
+
     public function skills(): HasMany
     {
         return $this->hasMany(Skill::class);

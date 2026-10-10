@@ -19,7 +19,20 @@ class AuthenticationTest extends TestCase
 
     public function test_users_can_authenticate_using_the_login_screen(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'engineer']);
+
+        $response = $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertAuthenticated();
+        $response->assertRedirect(route('task.list', absolute: false));
+    }
+
+    public function test_managers_are_redirected_to_the_dashboard_after_login(): void
+    {
+        $user = User::factory()->create(['role' => 'manager']);
 
         $response = $this->post('/login', [
             'email' => $user->email,
@@ -50,5 +63,41 @@ class AuthenticationTest extends TestCase
 
         $this->assertGuest();
         $response->assertRedirect('/');
+    }
+
+    public function test_authenticated_users_are_redirected_from_the_root_page(): void
+    {
+        $user = User::factory()->create(['role' => 'manager']);
+
+        $response = $this->actingAs($user)->get('/');
+
+        $response->assertRedirect(route('dashboard'));
+    }
+
+    public function test_remember_me_keeps_users_authenticated_in_a_new_session(): void
+    {
+        $user = User::factory()->create(['role' => 'engineer']);
+
+        $response = $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+            'remember' => true,
+        ]);
+
+        $this->assertAuthenticated();
+
+        $rememberCookie = collect($response->headers->getCookies())
+            ->first(fn ($cookie) => str_starts_with($cookie->getName(), 'remember_web_'));
+
+        $this->assertNotNull($rememberCookie, 'Remember me cookie was not set.');
+
+        // Simulasi buka tab baru: session hilang, hanya cookie remember me yang tersisa.
+        $this->app['session']->flush();
+
+        $response = $this->withCookie($rememberCookie->getName(), $rememberCookie->getValue())
+            ->get('/');
+
+        $this->assertAuthenticatedAs($user);
+        $response->assertRedirect(route('task.list'));
     }
 }

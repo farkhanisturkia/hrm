@@ -33,19 +33,7 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
-        switch (Auth::user()->role) {
-            case 'engineer':
-            case 'designer':
-            case 'communicator':
-                $loc = 'task.list';
-                break;
-            
-            default:
-                $loc = 'dashboard';
-                break;
-        }
-
-        return redirect()->intended(route($loc, absolute: false))->with('success', 'Login successful!');
+        return redirect()->intended(route(Auth::user()->landingRoute(), absolute: false))->with('success', 'Login successful!');
     }
 
     /**
