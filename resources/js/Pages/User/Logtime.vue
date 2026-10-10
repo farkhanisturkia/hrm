@@ -437,9 +437,18 @@ const closeDetailLogtime = () => {
             
             <div class="border-b border-gray-200/50 dark:border-white/10 pb-3">
                 <label class="block text-xs font-bold uppercase text-gray-500 dark:text-slate-400 mb-1 tracking-wider">Ticket Link</label>
-                <a :href="'//' + selectedLogtime?.task.ticket_link" target="_blank" class="text-primary-600 dark:text-primary-400 hover:underline break-all font-medium">
-                    {{ selectedLogtime?.task.ticket_link }}
+                <a 
+                  v-if="selectedLogtime?.task.ticket_link"
+                  :href="/^https?:\/\//i.test(selectedLogtime?.task.ticket_link) ? selectedLogtime?.task.ticket_link : `https://${selectedLogtime?.task.ticket_link}`" 
+                  target="_blank" 
+                  class="text-sm text-primary-600 dark:text-primary-400 hover:underline max-w-[200px]"
+                  :title="selectedLogtime.task.ticket_link"
+                >
+                  {{ selectedLogtime?.task.ticket_link }}
                 </a>
+                <span v-else class="text-sm text-gray-400 dark:text-gray-500">
+                  -
+                </span>
             </div>
             
             <div class="border-b border-gray-200/50 dark:border-white/10 pb-3">
