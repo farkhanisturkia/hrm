@@ -104,20 +104,22 @@ const markAsRead = (notification) => {
 
     showNotifications.value = false;
 
+    const navigateToTarget = () => {
+        if (targetUrl !== '#') {
+            const cleanPath = targetUrl.replace(/^https?:\/\/[^\/]+/, '');
+            router.visit(cleanPath);
+        }
+    };
+
     if (!notification.read_at) {
         router.post(route('notifications.markAsRead', notification.id), {}, {
             preserveScroll: true,
             preserveState: true,
-            onSuccess: () => {
-                if (targetUrl !== '#') {
-                    router.visit(targetUrl);
-                }
-            }
+            onSuccess: () => navigateToTarget(),
+            onError: () => navigateToTarget()
         });
     } else {
-        if (targetUrl !== '#') {
-            router.visit(targetUrl);
-        }
+        navigateToTarget();
     }
 };
 
