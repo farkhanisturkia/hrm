@@ -18,6 +18,7 @@ use App\Observers\LogtimeObserver;
 use App\Observers\ProjectObserver;
 use App\Observers\ProjectOwnerObserver;
 use App\Observers\AttendanceObserver;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\URL;
@@ -53,5 +54,8 @@ class AppServiceProvider extends ServiceProvider
         Skill::observe(SkillObserver::class);
         Task::observe(TaskObserver::class);
         User::observe(UserObserver::class);
+        Paginator::currentPathResolver(function () {
+            return '/' . ltrim(request()->path(), '/');
+        });
     }
 }
