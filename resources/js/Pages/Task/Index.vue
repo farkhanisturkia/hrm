@@ -53,14 +53,18 @@ const handleOpenOptions = () => {
   options.value = !options.value;
 };
 
-const getTaskRoleStatus = (task) => {
-  const userId = currentUserId.value;
-  const handlers = [
+const getTaskUsers = (task) => {
+  return [
+    ...(task.pm ? [task.pm] : []),
     ...(task.engineer || []),
     ...(task.designer || []),
-    ...(task.communicator || []),
-    ...(task.pm ? [task.pm] : [])
+    ...(task.communicator || [])
   ];
+};
+
+const getTaskRoleStatus = (task) => {
+  const userId = currentUserId.value;
+  const handlers = getTaskUsers(task);
 
   const reviewers = Array.isArray(task.reviewer) 
     ? task.reviewer 
@@ -388,14 +392,34 @@ const visibleButtons = computed(() => {
                     
                     <td class="px-4 py-3 align-middle text-sm min-w-[180px]">
                       <div class="grid grid-cols-2 gap-1.5">
-                           <span v-for="(id, idx) in [...(task.pm ? [task.pm] : []), ...(task.engineer || []), ...(task.designer || []), ...(task.communicator || [])]" 
-                              :key="idx"
-                              class="block px-2 py-1 rounded-md bg-white/50 dark:bg-slate-800/40 border border-gray-200 dark:border-white/10 text-xs text-gray-700 dark:text-slate-300 text-center truncate"
-                              :title="userData.users.find(u => u.id === id)?.name || id"
-                           >
-                              {{ userData.users.find(u => u.id === id)?.name || id }}
-                           </span>
-                           <span v-if="![...(task.engineer || []), ...(task.designer || []), ...(task.communicator || [])].length" class="text-gray-400 text-sm italic col-span-2 text-center">-</span>
+                        <span v-if="!getTaskUsers(task).length" class="text-gray-400 text-sm italic col-span-2 text-center">-</span>
+
+                        <template v-else-if="getTaskUsers(task).length <= 2">
+                          <span 
+                            v-for="id in getTaskUsers(task)"
+                            :key="id"
+                            class="block px-2 py-1 rounded-md bg-white/50 dark:bg-slate-800/40 border border-gray-200 dark:border-white/10 text-xs text-gray-700 dark:text-slate-300 text-center truncate"
+                            :title="userData.users.find(u => u.id === id)?.name || id"
+                          >
+                            {{ userData.users.find(u => u.id === id)?.name || id }}
+                          </span>
+                        </template>
+
+                        <template v-else>
+                          <span 
+                            class="block px-2 py-1 rounded-md bg-white/50 dark:bg-slate-800/40 border border-gray-200 dark:border-white/10 text-xs text-gray-700 dark:text-slate-300 text-center truncate"
+                            :title="userData.users.find(u => u.id === getTaskUsers(task)[0])?.name || getTaskUsers(task)[0]"
+                          >
+                            {{ userData.users.find(u => u.id === getTaskUsers(task)[0])?.name || getTaskUsers(task)[0] }}
+                          </span>
+
+                          <span 
+                            class="block px-2 py-1 rounded-md bg-slate-200/60 dark:bg-slate-700/50 border border-gray-300 dark:border-white/10 text-xs font-semibold text-gray-600 dark:text-slate-300 text-center truncate cursor-pointer hover:bg-slate-300/60 dark:hover:bg-slate-700/80 transition"
+                            :title="getTaskUsers(task).slice(1).map(id => userData.users.find(u => u.id === id)?.name || id).join(', ')"
+                          >
+                            +{{ getTaskUsers(task).length - 1 }} more
+                          </span>
+                        </template>
                       </div>
                     </td>
 
