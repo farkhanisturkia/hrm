@@ -411,9 +411,10 @@ const visibleButtons = computed(() => {
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="text-sm font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide block mb-1">Ticket Link</label>
-                            <a :href="task.ticket_link" target="_blank" class="text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline break-all flex items-center gap-1">
+                            <a v-if="task.ticket_link" :href="task.ticket_link" target="_blank" class="text-sm font-medium text-primary-600 dark:text-primary-400 hover:underline break-all flex items-center gap-1">
                                 {{ task.ticket_link }} ↗
                             </a>
+                            <span v-else class="text-sm font-medium text-gray-500 dark:text-slate-400">-</span>
                         </div>
                         <div>
                             <label class="text-sm font-bold text-gray-500 dark:text-slate-400 uppercase tracking-wide block mb-1">Related Links</label>

@@ -16,11 +16,11 @@ class StoreTaskRequest extends FormRequest
         return [
             'project_id'    => 'required',
             'issue'         => 'required|string|max:255',
-            'ticket_link'   => 'required|string|max:255',
-            'related_links' => 'array',
+            'ticket_link'   => 'nullable|string|max:255',
+            'related_links' => 'nullable|array',
             'description'   => 'nullable|string',
             'start_date'    => 'required|string',
-            'due_date'      => 'string',
+            'due_date'      => 'nullable|string',
         ];
     }
 }

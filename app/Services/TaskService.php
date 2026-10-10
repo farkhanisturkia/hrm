@@ -124,7 +124,7 @@ class TaskService
 
         $task = $project->tasks()->create([
             'issue' => $data['issue'],
-            'ticket_link' => $data['ticket_link'],
+            'ticket_link' => $data['ticket_link'] ?? null,
             'related_links' => !empty($data['related_links']) ? $data['related_links'] : null,
             'description' => $data['description'] ?? null,
             'start_date' => Carbon::parse($data['start_date']),

@@ -20,7 +20,7 @@ return new class extends Migration
             $table->json('engineer')->nullable();
             $table->json('designer')->nullable();
             $table->json('reviewer')->nullable();
-            $table->string('ticket_link');
+            $table->string('ticket_link')->nullable();
             $table->json('related_links')->nullable();
             $table->text('description')->nullable();
             $table->dateTime('start_date');
