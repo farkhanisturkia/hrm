@@ -389,7 +389,7 @@ const visibleButtons = computed(() => {
                 </thead>
                 <tbody class="divide-y divide-white/20 dark:divide-white/5">
                   <tr v-for="task in tasks.data" :key="task.id" class="hover:bg-white/30 dark:hover:bg-primary-500/10 transition duration-200">
-                    
+
                     <td class="px-4 py-3 align-middle text-sm min-w-[180px]">
                       <div class="grid grid-cols-2 gap-1.5">
                         <span v-if="!getTaskUsers(task).length" class="text-gray-400 text-sm italic col-span-2 text-center">-</span>
@@ -423,15 +423,14 @@ const visibleButtons = computed(() => {
                       </div>
                     </td>
 
-                    <td class="px-4 py-3 align-middle">
-                      <div class="flex flex-col gap-1.5 items-start">
-                        <a :href="route('task.show', task.id)" 
-                          class="flex items-center gap-1 text-sm font-extrabold text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 hover:underline decoration-primary-300 underline-offset-2 transition"
-                        >
-                          {{ task.issue }}
-                          <externalLink class="w-4 h-4 text-primary-600" />
-                        </a>
-                      </div>
+                    <td class="px-4 py-3 align-middle max-w-[300px]">
+                      <a 
+                        :href="route('task.show', task.id)" 
+                        class="inline-flex items-center gap-1.5 text-sm font-extrabold text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 hover:underline decoration-primary-300 underline-offset-2 transition group"
+                      >
+                        <span class="line-clamp-2 break-words">{{ task.issue }}</span>
+                        <externalLink class="w-4 h-4 min-w-[16px] min-h-[16px] shrink-0 text-primary-600 dark:text-primary-400 inline-block align-middle" />
+                      </a>
                     </td>
 
                     <td class="px-4 py-3 align-middle text-sm text-gray-700 dark:text-slate-200 whitespace-nowrap">{{ task.project?.name || '-' }}</td>
