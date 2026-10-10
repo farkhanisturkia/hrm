@@ -279,7 +279,6 @@ class TaskService
             'Communicator' => $data['communicator'] ?? [],
         ];
 
-        // Mengirim array lama & baru ke NotificationService
         $this->notificationService->sendAssignmentNotification($task, $oldAssignments, $newAssignments);
     }
 

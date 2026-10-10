@@ -19,20 +19,16 @@ use Illuminate\Support\Facades\Notification;
 class TaskNotificationService
 {
     /**
-     * Kirim notifikasi saat ada perubahan penugasan (PM, Engineer, Designer, Communicator).
+     * Send a notification when there is a change in assignments (PM, Engineer, Designer, Communicator).
      */
     public function sendAssignmentNotification(Task $task, array $oldAssignments, array $newAssignments): void
     {
         $oldUserIds = collect($oldAssignments)->flatten()->filter()->unique();
         $newUserIds = collect($newAssignments)->flatten()->filter()->unique();
 
-        // 1. User baru yang ditambahkan ke task
         $assignedUserIds = $newUserIds->diff($oldUserIds);
-
-        // 2. User lama yang dihapus dari task
         $unassignedUserIds = $oldUserIds->diff($newUserIds);
 
-        // Kirim notifikasi untuk user baru yang di-assign
         if ($assignedUserIds->isNotEmpty()) {
             $assignedUsers = User::whereIn('id', $assignedUserIds)->get();
             Notification::send($assignedUsers, new TaskAssignedNotification($task));
@@ -46,7 +42,7 @@ class TaskNotificationService
     }
 
     /**
-     * Kirim notifikasi saat reviewer baru ditambahkan.
+     * Send a notification when a new reviewer is added.
      */
     public function sendReviewerAssigned(Task $task, array $newReviewerIds): void
     {
@@ -61,7 +57,7 @@ class TaskNotificationService
     }
 
     /**
-     * Kirim notifikasi saat reviewer dihapus dari task.
+     * Send a notification when a reviewer is removed from a task.
      */
     public function sendReviewerUnassigned(Task $task, array $removedReviewerIds): void
     {
@@ -75,11 +71,10 @@ class TaskNotificationService
     }
 
     /**
-     * Kirim notifikasi komentar baru di task.
+     * Send a notification for new comments on a task.
      */
     public function sentCommentNotification(Task $task, User $sender, PullRequest $pullRequest): void
     {
-        // Ambil semua pengguna yang terlibat di task (kecuali pembuat komentar)
         $userIdsToNotify = collect([
             $task->creator,
             $task->pm,
@@ -98,11 +93,10 @@ class TaskNotificationService
     }
 
     /**
-     * Kirim notifikasi balasan (reply) komentar.
+     * Send a reply notification for a comment.
      */
     public function sendReplyNotification(Task $task, User $sender, Reply $reply, int $parentCommentOwnerId): void
     {
-        // Notifikasi diberikan terutama ke pemilik komentar utama jika bukan dia yang membalas
         if ($parentCommentOwnerId !== $sender->id) {
             $parentOwner = User::find($parentCommentOwnerId);
             if ($parentOwner) {
@@ -112,11 +106,10 @@ class TaskNotificationService
     }
 
     /**
-     * Kirim notifikasi saat reviewer menyelesaikan review.
+     * Send a notification when a reviewer completes a review.
      */
     public function sendReviewCompletedNotification(Task $task, TaskReviewer $taskReviewer): void
     {
-        // Beritahukan pembuat task atau PM bahwa review sudah selesai
         $recipientIds = collect([$task->creator, $task->pm])
             ->filter()
             ->unique()

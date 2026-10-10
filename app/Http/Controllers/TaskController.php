@@ -42,14 +42,14 @@ class TaskController extends Controller
     {
         $task = $this->taskService->store($request->validated());
 
-        return back()->with('success', "Task '{$task->issue}' berhasil dibuat!");
+        return back()->with('success', "The task `{$task->issue}` was successfully created!");
     }
 
     public function update(UpdateTaskRequest $request, Task $task): RedirectResponse
     {
         $this->taskService->update($task, $request->validated());
 
-        return back()->with('success', "Task '{$task->issue}' berhasil diperbarui!");
+        return back()->with('success', "The task `{$task->issue}` was successfully updated!");
     }
 
     public function show(Task $task): Response
@@ -87,7 +87,7 @@ class TaskController extends Controller
 
         $this->taskService->assignTask($task, $request->only(['pm', 'communicator', 'engineer', 'designer']));
 
-        return back()->with('success', 'Task berhasil di-assign!');
+        return back()->with('success', 'The task was successfully assigned!');
     }
 
     public function prTask(Request $request, Task $task): RedirectResponse
@@ -99,7 +99,7 @@ class TaskController extends Controller
         $reviewerIds = array_filter($request->input('reviewer', []));
         $this->taskService->assignReviewer($task, $reviewerIds);
 
-        return back()->with('success', 'Reviewer berhasil diupdate!');
+        return back()->with('success', 'The reviewer has been successfully updated!');
     }
 
     public function commentTask(Request $request, Task $task): RedirectResponse
@@ -111,7 +111,7 @@ class TaskController extends Controller
 
         $this->taskService->addComment($task, $request->only(['pr_links', 'comment']));
 
-        return back()->with('success', 'Komentar berhasil ditambahkan!');
+        return back()->with('success', 'Your comment has been successfully posted!');
     }
 
     public function replyTask(Request $request, PullRequest $pullRequest): RedirectResponse
@@ -124,8 +124,8 @@ class TaskController extends Controller
         $reply = $this->taskService->addReply($pullRequest, $request->only(['pr_links', 'comment']));
 
         $message = $reply
-            ? 'Reply berhasil dikirim!'
-            : 'Reply berhasil (terdeteksi duplikat, diabaikan)';
+            ? 'Your reply was successfully sent!'
+            : 'Reply successful (duplicate detected, ignored)';
 
         return back()->with('success', $message);
     }
@@ -134,7 +134,7 @@ class TaskController extends Controller
     {
         $this->taskService->activeTask($task);
 
-        return back()->with('success', 'Status active berhasil diperbarui!');
+        return back()->with('success', 'The “active” status has been successfully updated!');
     }
 
     public function close(Task $task): RedirectResponse
