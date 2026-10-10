@@ -1,7 +1,6 @@
 <script setup>
+import { computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
-import Close from '../Icon/Close.vue';
-import Plus from '../Icon/Plus.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import SelectInput from '@/Components/SelectInput.vue';
@@ -16,70 +15,69 @@ const props = defineProps({
     designer: {},
 });
 
-const initialComunicators = Array.isArray(props.task?.communicator)
-    ? props.task.communicator
-    : [''];
-
-const initialEngineers = Array.isArray(props.task?.engineer)
-    ? props.task.engineer
-    : [''];
-
-const initialDesigners = Array.isArray(props.task?.designer)
-    ? props.task.designer
-    : [''];
+const parseArray = (data) => {
+    if (!data) return [];
+    if (Array.isArray(data)) {
+        return data.map(item => (typeof item === 'object' && item !== null) ? item.id : item);
+    }
+    return [typeof data === 'object' ? data.id : data];
+};
 
 const form = useForm({
-    pm: props.task?.pm || '',
-    communicator: initialComunicators,
-    engineer: initialEngineers,
-    designer: initialDesigners,
+    pm: props.task?.pm?.id || props.task?.pm || '',
+    communicator: parseArray(props.task?.communicator),
+    engineer: parseArray(props.task?.engineer),
+    designer: parseArray(props.task?.designer),
     _method: 'PUT',
 });
 
+const isAllCommunicatorsSelected = computed({
+    get() {
+        if (!props.communicator || props.communicator.length === 0) return false;
+        return props.communicator.every(user => form.communicator.includes(user.id));
+    },
+    set(value) {
+        if (value) {
+            form.communicator = props.communicator.map(user => user.id);
+        } else {
+            form.communicator = [];
+        }
+    }
+});
+
+const isAllEngineersSelected = computed({
+    get() {
+        if (!props.engineer || props.engineer.length === 0) return false;
+        return props.engineer.every(user => form.engineer.includes(user.id));
+    },
+    set(value) {
+        if (value) {
+            form.engineer = props.engineer.map(user => user.id);
+        } else {
+            form.engineer = [];
+        }
+    }
+});
+
+// Computed Property untuk Select All Designers
+const isAllDesignersSelected = computed({
+    get() {
+        if (!props.designer || props.designer.length === 0) return false;
+        return props.designer.every(user => form.designer.includes(user.id));
+    },
+    set(value) {
+        if (value) {
+            form.designer = props.designer.map(user => user.id);
+        } else {
+            form.designer = [];
+        }
+    }
+});
+
 const submitForm = () => {
-    form.communicator = form.communicator.filter(value => value !== '');
-    form.engineer = form.engineer.filter(value => value !== '');
-    form.designer = form.designer.filter(value => value !== '');
-
     form.post(route('task.assignTask', props.task.id), {
-        onFinish: () => emit('close'),
+        onSuccess: () => emit('close'),
     });
-};
-
-const addCommunicator = () => {
-    form.communicator.push('');
-};
-
-const removeCommunicator = (index) => {
-    if (form.communicator.length > 1) {
-        form.communicator.splice(index, 1);
-    } else {
-        form.communicator = []
-    }
-};
-
-const addEngineer = () => {
-    form.engineer.push('');
-};
-
-const removeEngineer = (index) => {
-    if (form.engineer.length > 1) {
-        form.engineer.splice(index, 1);
-    } else {
-        form.engineer = []
-    }
-};
-
-const addDesigner = () => {
-    form.designer.push('');
-};
-
-const removeDesigner = (index) => {
-    if (form.designer.length > 1) {
-        form.designer.splice(index, 1);
-    } else {
-        form.designer = []
-    }
 };
 
 const cancel = () => {
@@ -90,10 +88,10 @@ const cancel = () => {
 
 <template>
     <div class="space-y-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Assign Task</h3>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Assign Task</h3>        
         <form @submit.prevent="submitForm" class="flex flex-col">
-            
-            <div class="max-h-[60vh] overflow-y-auto px-1 space-y-4 custom-scrollbar">
+            <div class="max-h-[60vh] overflow-y-auto px-1 space-y-5 custom-scrollbar">
+
                 <div>
                     <InputLabel for="type" value="Project Manager" />
                     <SelectInput
@@ -110,102 +108,136 @@ const cancel = () => {
                 </div>
 
                 <div>
-                    <InputLabel value="Communicators" />
-                    <div v-for="(link, index) in form.communicator" :key="'communicator-' + index" class="mt-1 flex items-center gap-2">
-                        <SelectInput
-                            :id="'communicator_link_' + index"
-                            v-model="form.communicator[index]"
-                            :options="communicator"
-                            :array="form.communicator"
-                            label="name"
-                            valueKey="id"
-                            class="mt-1 block w-full"
-                            placeholder="Search or select a Communicator..."
-                            :dark="true"
-                        />
-                        <button
-                            type="button"
-                            @click="removeCommunicator(index)"
-                            class="p-2.5 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 border border-gray-300 dark:border-white/10 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors bg-white/50 dark:bg-slate-800/50"
-                            title="Remove"
-                        >
-                            <Close class="w-4 h-4" />
-                        </button>
+                    <div class="flex justify-between items-center mb-1">
+                        <InputLabel value="Communicators" />
+                        <span class="text-xs font-semibold text-primary-500">
+                            {{ form.communicator.length }} selected
+                        </span>
+                    </div>
+                    
+                    <div class="p-3 bg-white/50 dark:bg-slate-800/50 border border-gray-300 dark:border-white/10 rounded-lg max-h-48 overflow-y-auto custom-scrollbar">
+                        <template v-if="communicator && communicator.length">
+                            <!-- Checkbox Select All -->
+                            <div class="pb-2 mb-2 border-b border-gray-200 dark:border-slate-700/60">
+                                <label class="flex items-center gap-2 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/50 cursor-pointer text-sm font-semibold text-gray-800 dark:text-slate-100">
+                                    <input 
+                                        type="checkbox" 
+                                        v-model="isAllCommunicatorsSelected"
+                                        class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:bg-slate-900 dark:border-slate-700 shrink-0"
+                                    />
+                                    <span class="select-none">All</span>
+                                </label>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <label 
+                                    v-for="user in communicator" 
+                                    :key="'comm-' + user.id" 
+                                    class="flex items-center gap-2 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/50 cursor-pointer transition text-sm text-gray-700 dark:text-slate-200 truncate"
+                                >
+                                    <input 
+                                        type="checkbox" 
+                                        :value="user.id" 
+                                        v-model="form.communicator"
+                                        class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:bg-slate-900 dark:border-slate-700 shrink-0"
+                                    />
+                                    <span class="select-none truncate" :title="user.name">{{ user.name }}</span>
+                                </label>
+                            </div>
+                        </template>
+                        <p v-else class="text-xs italic text-gray-400 dark:text-slate-500 text-center py-1">
+                            No communicators available.
+                        </p>
                     </div>
                     <InputError class="mt-2" :message="form.errors.communicator" />
-                    <button
-                        type="button"
-                        @click="addCommunicator"
-                        class="mt-2 px-3 py-1.5 text-sm font-bold text-white bg-green-600 rounded-md hover:bg-green-700 shadow-sm transition-colors flex items-center gap-1"
-                    >
-                        <Plus class="w-3 h-3" /> Add Communicator
-                    </button>
                 </div>
 
                 <div>
-                    <InputLabel value="Engineers" />
-                    <div v-for="(link, index) in form.engineer" :key="'engineer-' + index" class="mt-1 flex items-center gap-2">
-                        <SelectInput
-                            :id="'engineer_link_' + index"
-                            v-model="form.engineer[index]"
-                            :options="engineer"
-                            :array="form.engineer"
-                            label="name"
-                            valueKey="id"
-                            class="mt-1 block w-full"
-                            placeholder="Search or select a Engineer..."
-                            :dark="true"
-                        />
-                        <button
-                            type="button"
-                            @click="removeEngineer(index)"
-                            class="p-2.5 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 border border-gray-300 dark:border-white/10 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors bg-white/50 dark:bg-slate-800/50"
-                            title="Remove"
-                        >
-                            <Close class="w-4 h-4" />
-                        </button>
+                    <div class="flex justify-between items-center mb-1">
+                        <InputLabel value="Engineers" />
+                        <span class="text-xs font-semibold text-primary-500">
+                            {{ form.engineer.length }} selected
+                        </span>
+                    </div>
+                    
+                    <div class="p-3 bg-white/50 dark:bg-slate-800/50 border border-gray-300 dark:border-white/10 rounded-lg max-h-48 overflow-y-auto custom-scrollbar">
+                        <template v-if="engineer && engineer.length">
+                            <div class="pb-2 mb-2 border-b border-gray-200 dark:border-slate-700/60">
+                                <label class="flex items-center gap-2 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/50 cursor-pointer text-sm font-semibold text-gray-800 dark:text-slate-100">
+                                    <input 
+                                        type="checkbox" 
+                                        v-model="isAllEngineersSelected"
+                                        class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:bg-slate-900 dark:border-slate-700 shrink-0"
+                                    />
+                                    <span class="select-none">All</span>
+                                </label>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <label 
+                                    v-for="user in engineer" 
+                                    :key="'eng-' + user.id" 
+                                    class="flex items-center gap-2 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/50 cursor-pointer transition text-sm text-gray-700 dark:text-slate-200 truncate"
+                                >
+                                    <input 
+                                        type="checkbox" 
+                                        :value="user.id" 
+                                        v-model="form.engineer"
+                                        class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:bg-slate-900 dark:border-slate-700 shrink-0"
+                                    />
+                                    <span class="select-none truncate" :title="user.name">{{ user.name }}</span>
+                                </label>
+                            </div>
+                        </template>
+                        <p v-else class="text-xs italic text-gray-400 dark:text-slate-500 text-center py-1">
+                            No engineers available.
+                        </p>
                     </div>
                     <InputError class="mt-2" :message="form.errors.engineer" />
-                    <button
-                        type="button"
-                        @click="addEngineer"
-                        class="mt-2 px-3 py-1.5 text-sm font-bold text-white bg-green-600 rounded-md hover:bg-green-700 shadow-sm transition-colors flex items-center gap-1"
-                    >
-                        <Plus class="w-3 h-3" /> Add Engineer
-                    </button>
                 </div>
 
                 <div>
-                    <InputLabel value="Designer" />
-                    <div v-for="(link, index) in form.designer" :key="'designer-' + index" class="mt-1 flex items-center gap-2">
-                        <SelectInput
-                            :id="'designer_link_' + index"
-                            v-model="form.designer[index]"
-                            :options="designer"
-                            :array="form.designer"
-                            label="name"
-                            valueKey="id"
-                            class="mt-1 block w-full"
-                            placeholder="Search or select a Designer..."
-                            :dark="true"
-                        />
-                        <button
-                            type="button"
-                            @click="removeDesigner(index)"
-                            class="p-2.5 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 border border-gray-300 dark:border-white/10 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors bg-white/50 dark:bg-slate-800/50"
-                            title="Remove"
-                        >
-                            <Close class="w-4 h-4" />
-                        </button>
+                    <div class="flex justify-between items-center mb-1">
+                        <InputLabel value="Designers" />
+                        <span class="text-xs font-semibold text-primary-500">
+                            {{ form.designer.length }} selected
+                        </span>
+                    </div>
+                    
+                    <div class="p-3 bg-white/50 dark:bg-slate-800/50 border border-gray-300 dark:border-white/10 rounded-lg max-h-48 overflow-y-auto custom-scrollbar">
+                        <template v-if="designer && designer.length">
+                            <div class="pb-2 mb-2 border-b border-gray-200 dark:border-slate-700/60">
+                                <label class="flex items-center gap-2 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/50 cursor-pointer text-sm font-semibold text-gray-800 dark:text-slate-100">
+                                    <input 
+                                        type="checkbox" 
+                                        v-model="isAllDesignersSelected"
+                                        class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:bg-slate-900 dark:border-slate-700 shrink-0"
+                                    />
+                                    <span class="select-none">All</span>
+                                </label>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <label 
+                                    v-for="user in designer" 
+                                    :key="'des-' + user.id" 
+                                    class="flex items-center gap-2 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/50 cursor-pointer transition text-sm text-gray-700 dark:text-slate-200 truncate"
+                                >
+                                    <input 
+                                        type="checkbox" 
+                                        :value="user.id" 
+                                        v-model="form.designer"
+                                        class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:bg-slate-900 dark:border-slate-700 shrink-0"
+                                    />
+                                    <span class="select-none truncate" :title="user.name">{{ user.name }}</span>
+                                </label>
+                            </div>
+                        </template>
+                        <p v-else class="text-xs italic text-gray-400 dark:text-slate-500 text-center py-1">
+                            No designers available.
+                        </p>
                     </div>
                     <InputError class="mt-2" :message="form.errors.designer" />
-                    <button
-                        type="button"
-                        @click="addDesigner"
-                        class="mt-2 px-3 py-1.5 text-sm font-bold text-white bg-green-600 rounded-md hover:bg-green-700 shadow-sm transition-colors flex items-center gap-1"
-                    >
-                        <Plus class="w-3 h-3" /> Add Designer
-                    </button>
                 </div>
             </div>
 

@@ -1,11 +1,8 @@
 <script setup>
-import { useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import Close from '../Icon/Close.vue';
-import Plus from '../Icon/Plus.vue';
+import { useForm } from '@inertiajs/vue3';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
-import SelectInput from '@/Components/SelectInput.vue';
 
 const emit = defineEmits(['close']);
 
@@ -23,33 +20,37 @@ const availableReviewers = computed(() => {
     return [];
 });
 
-const initialReviewers = Array.isArray(props.task?.reviewer)
-    ? props.task.reviewer
-    : [''];
+const parseArray = (data) => {
+    if (!data) return [];
+    if (Array.isArray(data)) {
+        return data.map(item => (typeof item === 'object' && item !== null) ? item.id : item);
+    }
+    return [typeof data === 'object' ? data.id : data];
+};
 
 const form = useForm({
-    reviewer: initialReviewers,
+    reviewer: parseArray(props.task?.reviewer),
     _method: 'PUT',
 });
 
-const submitForm = () => {
-    form.reviewer = form.reviewer.filter(value => value !== '');
-
-    form.post(route('task.prTask', props.task.id), {
-        onFinish: () => emit('close'),
-    });
-};
-
-const addReviewer = () => {
-    form.reviewer.push('');
-};
-
-const removeReviewer = (index) => {
-    if (form.reviewer.length > 1) {
-        form.reviewer.splice(index, 1);
-    } else {
-        form.reviewer = []
+const isAllReviewersSelected = computed({
+    get() {
+        if (!availableReviewers.value || availableReviewers.value.length === 0) return false;
+        return availableReviewers.value.every(user => form.reviewer.includes(user.id));
+    },
+    set(value) {
+        if (value) {
+            form.reviewer = availableReviewers.value.map(user => user.id);
+        } else {
+            form.reviewer = [];
+        }
     }
+});
+
+const submitForm = () => {
+    form.post(route('task.prTask', props.task.id), {
+        onSuccess: () => emit('close'),
+    });
 };
 
 const cancel = () => {
@@ -61,41 +62,52 @@ const cancel = () => {
 <template>
     <div class="space-y-6">
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Assign Task's Reviewer</h3>
+        
         <form @submit.prevent="submitForm" class="flex flex-col">
-            
-            <div class="max-h-[60vh] overflow-y-auto px-1 space-y-4 custom-scrollbar">
+            <div class="max-h-[60vh] overflow-y-auto px-1 space-y-5 custom-scrollbar">
+                
                 <div>
-                    <InputLabel value="Reviewers" />
-                    <div v-for="(link, index) in form.reviewer" :key="form.reviewer[index]" class="mt-1 flex items-center gap-2">
-                        <SelectInput
-                            :id="'reviewer_' + index"
-                            v-model="form.reviewer[index]"
-                            :options="availableReviewers"
-                            :array="form.reviewer"
-                            label="name"
-                            valueKey="id"
-                            class="mt-1 block w-full"
-                            placeholder="Search or select a Reviewer..."
-                            :dark="true"
-                        />
-                        <button
-                            type="button"
-                            @click="removeReviewer(index)"
-                            class="p-2.5 text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 border border-gray-300 dark:border-white/10 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors bg-white/50 dark:bg-slate-800/50"
-                            title="Remove"
-                        >
-                            <Close class="w-4 h-4" />
-                        </button>
+                    <div class="flex justify-between items-center mb-1">
+                        <InputLabel value="Reviewers" />
+                        <span class="text-xs font-semibold text-primary-500">
+                            {{ form.reviewer.length }} selected
+                        </span>
+                    </div>
+                    
+                    <div class="p-3 bg-white/50 dark:bg-slate-800/50 border border-gray-300 dark:border-white/10 rounded-lg max-h-56 overflow-y-auto custom-scrollbar">
+                        <template v-if="availableReviewers && availableReviewers.length">
+                            <div class="pb-2 mb-2 border-b border-gray-200 dark:border-slate-700/60">
+                                <label class="flex items-center gap-2 p-1 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/50 cursor-pointer text-sm font-semibold text-gray-800 dark:text-slate-100">
+                                    <input 
+                                        type="checkbox" 
+                                        v-model="isAllReviewersSelected"
+                                        class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:bg-slate-900 dark:border-slate-700 shrink-0"
+                                    />
+                                    <span class="select-none">All</span>
+                                </label>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <label 
+                                    v-for="user in availableReviewers" 
+                                    :key="'rev-' + user.id" 
+                                    class="flex items-center gap-2 p-1.5 rounded-md hover:bg-gray-100 dark:hover:bg-slate-700/50 cursor-pointer transition text-sm text-gray-700 dark:text-slate-200 truncate"
+                                >
+                                    <input 
+                                        type="checkbox" 
+                                        :value="user.id" 
+                                        v-model="form.reviewer"
+                                        class="w-4 h-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500 dark:bg-slate-900 dark:border-slate-700 shrink-0"
+                                    />
+                                    <span class="select-none truncate" :title="user.name">{{ user.name }}</span>
+                                </label>
+                            </div>
+                        </template>
+                        <p v-else class="text-xs italic text-gray-400 dark:text-slate-500 text-center py-1">
+                            No available reviewers.
+                        </p>
                     </div>
                     <InputError class="mt-2" :message="form.errors.reviewer" />
-                    
-                    <button
-                        type="button"
-                        @click="addReviewer"
-                        class="mt-2 px-3 py-1.5 text-sm font-bold text-white bg-green-600 rounded-md hover:bg-green-700 shadow-sm transition-colors flex items-center gap-1"
-                    >
-                        <Plus class="w-3 h-3" /> Add Reviewer
-                    </button>
                 </div>
             </div>
 
