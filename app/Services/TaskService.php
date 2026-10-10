@@ -434,7 +434,7 @@ class TaskService
                 'fields'             => 'id, webViewLink',
             ]);
 
-            $targetEmail = Auth::user()?->email ?? 'farkhan@kyodo-i.com';
+            $targetEmail = Auth::user()?->email ?? 'abdurrohmanfarkhan@gmail.com';
             try {
                 $permission = new Drive\Permission([
                     'type'         => 'user',
