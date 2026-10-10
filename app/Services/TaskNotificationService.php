@@ -2,122 +2,129 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-
-use App\Mail\CommentReplyNotification;
-use App\Mail\TaskAssignmentNotification;
-use App\Mail\TaskCommentNotification;
-use App\Mail\TaskReviewCompletedNotification;
-use App\Mail\TaskUnassignmentNotification;
+use App\Models\Task;
+use App\Models\User;
 use App\Models\PullRequest;
 use App\Models\Reply;
-use App\Models\Task;
 use App\Models\TaskReviewer;
-use App\Models\User;
+use App\Notifications\TaskAssignedNotification;
+use App\Notifications\TaskUnassignedNotification;
+use App\Notifications\TaskReviewerAssignedNotification;
+use App\Notifications\TaskReviewerUnassignedNotification;
+use App\Notifications\TaskCommentNotification;
+use App\Notifications\TaskReplyNotification;
+use App\Notifications\TaskReviewerCompletedNotification;
+use Illuminate\Support\Facades\Notification;
 
 class TaskNotificationService
 {
+    /**
+     * Kirim notifikasi saat ada perubahan penugasan (PM, Engineer, Designer, Communicator).
+     */
     public function sendAssignmentNotification(Task $task, array $oldAssignments, array $newAssignments): void
     {
-        foreach($newAssignments as $role => $newIds) {
-            $oldIds = $oldAssignments[$role] ?? [];
-            
-            $addedIds = array_diff($newIds, $oldIds);
-            $removeIds = array_diff($oldIds, $newIds);
+        $oldUserIds = collect($oldAssignments)->flatten()->filter()->unique();
+        $newUserIds = collect($newAssignments)->flatten()->filter()->unique();
 
-            if (!empty($addedIds)) {
-                $this->sendBulkEmail(
-                    userIds: $addedIds,
-                    mailable: fn(User $user) => new TaskAssignmentNotification($task, $role),
-                );
-            }
+        // 1. User baru yang ditambahkan ke task
+        $assignedUserIds = $newUserIds->diff($oldUserIds);
 
-            if (!empty($removeIds)) {
-                $this->sendBulkEmail(
-                    userIds: $removeIds,
-                    mailable: fn(User $Task) => new TaskUnassignmentNotification($task, $role),
-                );
-            }
+        // 2. User lama yang dihapus dari task
+        $unassignedUserIds = $oldUserIds->diff($newUserIds);
+
+        // Kirim notifikasi untuk user baru yang di-assign
+        if ($assignedUserIds->isNotEmpty()) {
+            $assignedUsers = User::whereIn('id', $assignedUserIds)->get();
+            Notification::send($assignedUsers, new TaskAssignedNotification($task));
+        }
+
+        // Kirim notifikasi untuk user yang di-unassign
+        if ($unassignedUserIds->isNotEmpty()) {
+            $unassignedUsers = User::whereIn('id', $unassignedUserIds)->get();
+            Notification::send($unassignedUsers, new TaskUnassignedNotification($task));
         }
     }
 
-    public function sendReviwerAssigned(Task $task, array $userIds): void
+    /**
+     * Kirim notifikasi saat reviewer baru ditambahkan.
+     */
+    public function sendReviewerAssigned(Task $task, array $newReviewerIds): void
     {
-        $this->sendBulkEmail(
-            userIds: $userIds,
-            mailable: fn(User $user) => new TaskAssignmentNotification($task, 'Reviewer'),
-        );
-    }
-
-    public function sendReviewerUnassigned(Task $task, array $userIds): void
-    {
-        $this->sendBulkEmail(
-            userIds: $userIds,
-            mailable: fn(User $user) => new TaskUnassignmentNotification($task, 'Reviewer'),
-        );
-    }
-
-    public function sentCommentNotification(Task $task, User $commenter, PullRequest $pullRequest): void
-    {
-        $recepientIds = collect([
-            $task->creator,
-            $task->pl,
-            ...($task->engineer ?? []),
-            ...($task->designer ?? []),
-            ...($task->communicator ?? []),
-            ...($task->reviewer ?? []),
-        ])->filter()->unique()->reject(fn($id) => $id === $commenter->id);
-    }
-
-    public function sendReplyNotification(Task $task, User $replier, Reply $reply, int $targetUserId): void
-    {
-        if ($targetUserId === $replier->id) {
+        if (empty($newReviewerIds)) {
             return;
         }
 
-        $targetUser = User::findOrFail($targetUserId);
+        $reviewers = User::whereIn('id', $newReviewerIds)->get();
+        $submittedBy = auth()->user();
 
-        if ($targetUser?->email) {
-            $this->sendMail(
-                $targetUser,
-                new CommentReplyNotification($task, $replier, $reply),
-            );
+        Notification::send($reviewers, new TaskReviewerAssignedNotification($task, $submittedBy));
+    }
+
+    /**
+     * Kirim notifikasi saat reviewer dihapus dari task.
+     */
+    public function sendReviewerUnassigned(Task $task, array $removedReviewerIds): void
+    {
+        if (empty($removedReviewerIds)) {
+            return;
+        }
+
+        $removedReviewers = User::whereIn('id', $removedReviewerIds)->get();
+
+        Notification::send($removedReviewers, new TaskReviewerUnassignedNotification($task));
+    }
+
+    /**
+     * Kirim notifikasi komentar baru di task.
+     */
+    public function sentCommentNotification(Task $task, User $sender, PullRequest $pullRequest): void
+    {
+        // Ambil semua pengguna yang terlibat di task (kecuali pembuat komentar)
+        $userIdsToNotify = collect([
+            $task->creator,
+            $task->pm,
+        ])
+        ->merge($task->engineer ?? [])
+        ->merge($task->designer ?? [])
+        ->merge($task->communicator ?? [])
+        ->filter()
+        ->unique()
+        ->reject(fn ($id) => $id == $sender->id);
+
+        if ($userIdsToNotify->isNotEmpty()) {
+            $users = User::whereIn('id', $userIdsToNotify)->get();
+            Notification::send($users, new TaskCommentNotification($task, $sender, $pullRequest));
         }
     }
 
+    /**
+     * Kirim notifikasi balasan (reply) komentar.
+     */
+    public function sendReplyNotification(Task $task, User $sender, Reply $reply, int $parentCommentOwnerId): void
+    {
+        // Notifikasi diberikan terutama ke pemilik komentar utama jika bukan dia yang membalas
+        if ($parentCommentOwnerId !== $sender->id) {
+            $parentOwner = User::find($parentCommentOwnerId);
+            if ($parentOwner) {
+                $parentOwner->notify(new TaskReplyNotification($task, $sender, $reply));
+            }
+        }
+    }
+
+    /**
+     * Kirim notifikasi saat reviewer menyelesaikan review.
+     */
     public function sendReviewCompletedNotification(Task $task, TaskReviewer $taskReviewer): void
     {
-        $recepientIds = collect([
-            $task->pl,
-            $task->creator,
-        ])->filter()->unique()->all();
+        // Beritahukan pembuat task atau PM bahwa review sudah selesai
+        $recipientIds = collect([$task->creator, $task->pm])
+            ->filter()
+            ->unique()
+            ->reject(fn ($id) => $id == $taskReviewer->user_id);
 
-        $this->sendBulkEmail(
-            userIds: $recepientIds,
-            mailable: fn(User $user) => new TaskReviewNotification($task, $taskReviewer),
-        );
-    }
-
-    private function sendBulkEmail(array $userIds, callable $mailable): void
-    {
-        if (empty($userIds)) {
-            return;
-        }
-
-        User::whereIn('id', $userIds)
-            ->whereNotNull('email')
-            ->get()
-            ->each(fn(User $user) => $this->sendMail($user, $mailable($user)));
-    }
-
-    private function sendMail(User $user, object $mailable): void
-    {
-        try {
-            Mail::to($user->email)->send($mailable);
-        } catch (\Exception $err) {
-            Log::error("Failed to send email to {$user->email}" . $err->getMessage());
+        if ($recipientIds->isNotEmpty()) {
+            $recipients = User::whereIn('id', $recipientIds)->get();
+            Notification::send($recipients, new TaskReviewerCompletedNotification($task, $taskReviewer));
         }
     }
 }

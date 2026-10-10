@@ -1,6 +1,6 @@
 <script setup>
-import { ref, watch, computed, onUnmounted } from 'vue'; 
-import { Head, router, usePage, useForm } from '@inertiajs/vue3';
+import { ref, watch, computed, onMounted, onUnmounted } from 'vue'; 
+import { Head, router, usePage, useForm, Link } from '@inertiajs/vue3';
 import Menus from "@/Components/Menus.vue";
 import Hamburger from '@/Components/Icon/Hamburger.vue';
 import Logout from '@/Components/Icon/Logout.vue';
@@ -19,25 +19,140 @@ defineProps({
 
 // State & Hooks
 const page = usePage();
-const user = computed(() => page.props.auth.user);
+const user = computed(() => page.props.auth?.user);
+
+// --- Logic Notification, Audio & Polling ---
+const showNotifications = ref(false);
+const notifications = computed(() => page.props.notifications || []); 
+
+const unreadCount = computed(() => {
+    if (page.props.unreadNotificationCount !== undefined) {
+        return page.props.unreadNotificationCount;
+    }
+    return notifications.value.filter(n => !n.read_at).length;
+});
+
+const previousUnreadCount = ref(unreadCount.value);
+
+const toggleNotifications = () => {
+    if (!showNotifications.value) {
+        showProfilePanel.value = false;
+    }
+    showNotifications.value = !showNotifications.value;
+};
+
+// Audio Notifikasi
+const playNotificationSound = () => {
+    try {
+        const audio = new Audio('/backsounds/notification.mp3');
+        audio.play().catch(e => console.log('Autoplay audio diblokir atau file belum ada:', e));
+    } catch (e) {
+        console.error('Audio play error:', e);
+    }
+};
+
+watch(unreadCount, (newVal, oldVal) => {
+    if (newVal > oldVal) {
+        playNotificationSound();
+    }
+});
+
+// Polling interval
+let pollInterval = null;
+
+onMounted(() => {
+    pollInterval = setInterval(() => {
+        router.reload({
+            only: ['notifications', 'unreadNotificationCount'],
+            preserveScroll: true,
+            preserveState: true,
+            onBefore: () => {
+                page.props.flash = {};
+            },
+            onSuccess: (pageProps) => {
+                const currentUnread = pageProps.props.unreadNotificationCount ?? 
+                    (pageProps.props.notifications ? pageProps.props.notifications.filter(n => !n.read_at).length : 0);
+
+                if (currentUnread > previousUnreadCount.value) {
+                    playNotificationSound();
+                }
+
+                previousUnreadCount.value = currentUnread;
+            }
+        });
+    }, 10000);
+});
+
+// Format tanggal notifikasi agar rapi
+const formatDate = (dateString) => {
+    if (!dateString) return '';
+    try {
+        const date = new Date(dateString);
+        return new Intl.DateTimeFormat('id-ID', {
+            day: 'numeric',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit'
+        }).format(date);
+    } catch (e) {
+        return dateString;
+    }
+};
+
+const markAsRead = (notification) => {
+    const targetUrl = notification.data?.url || notification.url || '#';
+
+    showNotifications.value = false;
+
+    if (!notification.read_at) {
+        router.post(route('notifications.markAsRead', notification.id), {}, {
+            preserveScroll: true,
+            preserveState: true,
+            onSuccess: () => {
+                if (targetUrl !== '#') {
+                    router.visit(targetUrl);
+                }
+            }
+        });
+    } else {
+        if (targetUrl !== '#') {
+            router.visit(targetUrl);
+        }
+    }
+};
+
+const markAllAsRead = () => {
+    router.post(route('notifications.markAllAsRead'), {}, {
+        preserveScroll: true,
+        preserveState: true,
+    });
+};
 
 // --- Logic Sidebar Kanan (Profile) ---
 const showProfilePanel = ref(false);
+
+const toggleProfilePanel = () => {
+    if (!showProfilePanel.value) {
+        showNotifications.value = false;
+    }
+    showProfilePanel.value = !showProfilePanel.value;
+};
 
 // Logic Edit Nama & Avatar
 const isEditingName = ref(false);
 const nameForm = useForm({ name: '', email: '', avatar: '' });
 
 const startEditingName = () => {
-    nameForm.name = user.value.name;
-    nameForm.email = user.value.email;
-    nameForm.avatar = user.value.avatar || '/avatars/1.png'; // Fallback ke default
+    nameForm.name = user.value?.name;
+    nameForm.email = user.value?.email;
+    nameForm.avatar = user.value?.avatar || '/avatars/1.png';
     isEditingName.value = true;
 };
 
 const saveName = () => {
     nameForm.patch(route('profile.update'), {
-        preserveScroll: true, preserveState: true, 
+        preserveScroll: true, 
+        preserveState: true, 
         onSuccess: () => { isEditingName.value = false; }
     });
 };
@@ -59,17 +174,17 @@ const avatarAssets = [
 const selectedAvatarTemp = ref('');
 
 const openAvatarModal = () => {
-    // Jika user.avatar null, tampilkan avatar 1 sebagai pilihan awal di modal
-    selectedAvatarTemp.value = user.value.avatar || '/avatars/1.png';
+    selectedAvatarTemp.value = user.value?.avatar || '/avatars/1.png';
     showAvatarModal.value = true;
 };
 const selectAvatar = (assetPath) => { selectedAvatarTemp.value = assetPath; };
 const saveAvatar = () => {
-    avatarForm.name = user.value.name;
-    avatarForm.email = user.value.email;
+    avatarForm.name = user.value?.name;
+    avatarForm.email = user.value?.email;
     avatarForm.avatar = selectedAvatarTemp.value;
     avatarForm.patch(route('profile.update'), {
-        preserveScroll: true, preserveState: true,
+        preserveScroll: true, 
+        preserveState: true,
         onSuccess: () => { showAvatarModal.value = false; }
     });
 };
@@ -84,14 +199,9 @@ const showSkillModal = ref(false);
 const selectedSkills = ref([]);
 const skillForm = useForm({ displayed_skills: [] });
 
-// Dapatkan skill yang saat ini akan ditampilkan (Maksimal 5)
 const displayedSkills = computed(() => {
-    if (!user.value.skills || user.value.skills.length === 0) return [];
-    
-    // Jika Anda telah menambahkan kolom `is_displayed` di database:
+    if (!user.value?.skills || user.value.skills.length === 0) return [];
     const selected = user.value.skills.filter(s => s.is_displayed);
-    
-    // Jika belum ada yang diset (atau blm ada kolom), ambil 5 teratas
     if (selected.length === 0) {
         return user.value.skills.slice(0, 5);
     }
@@ -99,7 +209,7 @@ const displayedSkills = computed(() => {
 });
 
 const openSkillModal = () => {
-    // Isi selectedSkills dengan ID dari skill yang is_displayed = true (atau 5 skill pertama sebagai default awal)
+    if (!user.value?.skills) return;
     const currentSelected = user.value.skills.filter(s => s.is_displayed).map(s => s.id);
     if (currentSelected.length === 0) {
         selectedSkills.value = user.value.skills.slice(0, 5).map(s => s.id);
@@ -132,6 +242,7 @@ const removeRouterListener = router.on('start', () => {
     if (typeof window !== 'undefined' && window.innerWidth < 768) {
         openMenus.value = false;
         showProfilePanel.value = false;
+        showNotifications.value = false;
     }
 });
 
@@ -142,7 +253,6 @@ watch(openMenus, (newValue) => {
     }
 });
 
-// Mutual Exclusivity & Body Scroll Lock
 watch(openMenus, (isOpen) => { if (isOpen) showProfilePanel.value = false; });
 
 watch(showProfilePanel, (isOpen) => {
@@ -157,6 +267,9 @@ watch(showProfilePanel, (isOpen) => {
 
 onUnmounted(() => {
     document.body.style.overflow = '';
+    if (pollInterval) {
+        clearInterval(pollInterval);
+    }
     removeRouterListener();
 });
 
@@ -174,6 +287,7 @@ const getInitials = (name) => {
     <div class="min-h-screen bg-[url('/background/BGlight-TM.jpg.jpeg')] bg-cover bg-center bg-fixed bg-no-repeat dark:bg-[url('/background/dark_theme.jpg')] dark:bg-cover dark:bg-center dark:bg-fixed dark:bg-no-repeat font-sans text-slate-600 dark:text-slate-300 relative selection:bg-primary-500 selection:text-white transition-colors duration-500">
         <Head :title="title" />
 
+        <!-- Mobile Nav -->
         <nav class="md:hidden fixed top-0 left-0 w-full bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-white/10 z-50 shadow-sm">
             <div class="flex justify-between items-center px-4 h-16">
                 <div class="flex items-center gap-3">
@@ -183,14 +297,90 @@ const getInitials = (name) => {
                     <img src="/icon_kndi.svg" alt="Logo" class="w-8 h-8 drop-shadow-md" />
                     <span class="font-bold text-lg text-blue-800 dark:text-white tracking-tight">KNDI</span>
                 </div>
-                <button @click="showProfilePanel = true" class="relative">
-                    <div v-if="user.avatar" class="w-8 h-8 rounded-none overflow-hidden">
-                        <img :src="user.avatar" alt="Avatar" class="w-full h-full object-contain">
+                <div class="flex gap-3">
+                    <!-- Notification Bell Dropdown -->
+                    <div class="relative">
+                        <button 
+                            @click="toggleNotifications"
+                            type="button"
+                            class="relative p-2.5 rounded-none text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 transition-all duration-300"
+                            title="Notifications"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                            </svg>
+
+                            <span 
+                                v-if="unreadCount > 0" 
+                                class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-slate-900 animate-pulse"
+                            >
+                                {{ unreadCount > 9 ? '9+' : unreadCount }}
+                            </span>
+                        </button>
+
+                        <!-- Dropdown Menu Notifications -->
+                        <div 
+                            v-if="showNotifications" 
+                            class="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 shadow-2xl rounded-none z-50 overflow-hidden"
+                        >
+                            <div class="p-3 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
+                                <h3 class="text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-slate-200">Notifications</h3>
+                                <button 
+                                    v-if="unreadCount > 0" 
+                                    @click="markAllAsRead"
+                                    type="button"
+                                    class="text-[10px] font-semibold text-primary-600 dark:text-primary-400 hover:underline"
+                                >
+                                    Mark All as Read
+                                </button>
+                            </div>
+
+                            <div class="max-h-72 overflow-y-auto divide-y divide-gray-100 dark:divide-white/5 no-scrollbar">
+                                <template v-if="notifications.length > 0">
+                                    <div 
+                                        v-for="item in notifications" 
+                                        :key="item.id"
+                                        @click="markAsRead(item)"
+                                        class="block p-3 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition cursor-pointer text-left relative"
+                                        :class="{
+                                            'bg-primary-50/30 dark:bg-primary-900/10': !item.read_at,
+                                            'opacity-75': item.read_at
+                                        }"
+                                    >
+                                        <!-- Titik Indikator Belum Dibaca -->
+                                        <span 
+                                            v-if="!item.read_at" 
+                                            class="absolute top-3 right-3 w-2 h-2 rounded-full bg-primary-500"
+                                        ></span>
+
+                                        <!-- Fleksibel membaca atribut langsung atau dari data JSON -->
+                                        <p class="text-xs font-semibold text-slate-800 dark:text-slate-200 pr-4">
+                                            {{ item.data?.title || item.title || 'Notifikasi Baru' }}
+                                        </p>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                                            {{ item.data?.message || item.data?.body || item.message || '-' }}
+                                        </p>
+                                        <span class="text-[10px] text-slate-400 mt-1 block">
+                                            {{ formatDate(item.created_at) }}
+                                        </span>
+                                    </div>
+                                </template>
+                                <div v-else class="p-6 text-center text-xs text-slate-400 italic">
+                                    No notifications yet.
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div v-else class="w-8 h-8 rounded-none bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-primary-600 dark:text-primary-300 font-bold text-sm shadow-inner">
-                        {{ getInitials(user.name) }}
-                    </div>
-                </button>
+
+                    <button @click="toggleProfilePanel" class="relative">
+                        <div v-if="user?.avatar" class="w-8 h-8 rounded-none overflow-hidden">
+                            <img :src="user.avatar" alt="Avatar" class="w-full h-full object-contain">
+                        </div>
+                        <div v-else class="w-8 h-8 rounded-none bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-primary-600 dark:text-primary-300 font-bold text-sm shadow-inner">
+                            {{ getInitials(user?.name) }}
+                        </div>
+                    </button>
+                </div>
             </div>
 
             <Transition name="slide-fade">
@@ -205,6 +395,7 @@ const getInitials = (name) => {
             </Transition>
         </nav>
 
+        <!-- Desktop Sidebar -->
         <nav 
             class="hidden md:flex fixed top-4 left-4 bottom-4 z-50 transition-all duration-500 shadow-2xl flex-col rounded-none border border-white/20 dark:border-white/10" 
             :class="[
@@ -235,6 +426,7 @@ const getInitials = (name) => {
             </div>
         </nav>
 
+        <!-- Main Wrapper -->
         <div 
             class="flex-1 flex flex-col min-h-screen transition-all duration-500 ease-out pt-16 md:pt-0" 
             :class="{
@@ -243,29 +435,105 @@ const getInitials = (name) => {
                 'md:pl-6 md:pr-[22rem]': showProfilePanel
             }"
         >
+            <!-- Header -->
             <header class="hidden md:flex h-24 items-center justify-between px-4 sticky top-0 z-40 transition-colors duration-300
                 bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-white/5 shadow-sm">
                 <div>
                     <h1 class="text-3xl font-bold text-[#0d1b3e] dark:text-slate-100 tracking-tight">
-                        Hello, {{ user.name.split(' ')[0] }}!
+                        Hello, {{ user?.name ? user.name.split(' ')[0] : 'User' }}!
                     </h1>
                     <p class="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">Have a productive day.</p>
                 </div>
 
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-3">
+                    <!-- Notification Bell Dropdown -->
+                    <div class="relative">
+                        <button 
+                            @click="toggleNotifications"
+                            type="button"
+                            class="relative p-2.5 rounded-none bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-primary-600 dark:hover:text-primary-400 shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-200 dark:border-white/10"
+                            title="Notifications"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.8" stroke="currentColor" class="w-5 h-5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
+                            </svg>
+
+                            <span 
+                                v-if="unreadCount > 0" 
+                                class="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white dark:ring-slate-900 animate-pulse"
+                            >
+                                {{ unreadCount > 9 ? '9+' : unreadCount }}
+                            </span>
+                        </button>
+
+                        <!-- Dropdown Menu Notifications -->
+                        <div 
+                            v-if="showNotifications" 
+                            class="absolute right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-gray-200 dark:border-white/10 shadow-2xl rounded-none z-50 overflow-hidden"
+                        >
+                            <div class="p-3 border-b border-gray-100 dark:border-white/10 flex justify-between items-center bg-gray-50 dark:bg-slate-800/50">
+                                <h3 class="text-xs font-bold uppercase tracking-widest text-slate-700 dark:text-slate-200">Notifications</h3>
+                                <button 
+                                    v-if="unreadCount > 0" 
+                                    @click="markAllAsRead"
+                                    type="button"
+                                    class="text-[10px] font-semibold text-primary-600 dark:text-primary-400 hover:underline"
+                                >
+                                    Mark All as Read
+                                </button>
+                            </div>
+
+                            <div class="max-h-72 overflow-y-auto divide-y divide-gray-100 dark:divide-white/5 no-scrollbar">
+                                <template v-if="notifications.length > 0">
+                                    <div 
+                                        v-for="item in notifications" 
+                                        :key="item.id"
+                                        @click="markAsRead(item)"
+                                        class="block p-3 hover:bg-gray-50 dark:hover:bg-slate-800/50 transition cursor-pointer text-left relative"
+                                        :class="{
+                                            'bg-primary-50/30 dark:bg-primary-900/10': !item.read_at,
+                                            'opacity-75': item.read_at
+                                        }"
+                                    >
+                                        <!-- Titik Indikator Belum Dibaca -->
+                                        <span 
+                                            v-if="!item.read_at" 
+                                            class="absolute top-3 right-3 w-2 h-2 rounded-full bg-primary-500"
+                                        ></span>
+
+                                        <!-- Fleksibel membaca atribut langsung atau dari data JSON -->
+                                        <p class="text-xs font-semibold text-slate-800 dark:text-slate-200 pr-4">
+                                            {{ item.data?.title || item.title || 'Notifikasi Baru' }}
+                                        </p>
+                                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">
+                                            {{ item.data?.message || item.data?.body || item.message || '-' }}
+                                        </p>
+                                        <span class="text-[10px] text-slate-400 mt-1 block">
+                                            {{ formatDate(item.created_at) }}
+                                        </span>
+                                    </div>
+                                </template>
+                                <div v-else class="p-6 text-center text-xs text-slate-400 italic">
+                                    No notifications yet.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User Profile Trigger Button -->
                     <button 
-                        @click="showProfilePanel = !showProfilePanel"
+                        @click="toggleProfilePanel"
                         class="flex items-center gap-3 p-1.5 pr-5 rounded-none bg-white dark:bg-slate-800 shadow-sm hover:shadow-lg transition-all duration-300 group border border-gray-200 dark:border-white/10"
                     >
-                        <div v-if="user.avatar" class="w-10 h-10 rounded-none overflow-hidden">
+                        <div v-if="user?.avatar" class="w-10 h-10 rounded-none overflow-hidden">
                              <img :src="user.avatar" alt="User Avatar" class="w-full h-full object-contain">
                         </div>
                         <div v-else class="w-10 h-10 rounded-none bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center text-primary-600 dark:text-primary-300 font-bold text-sm">
-                            {{ getInitials(user.name) }}
+                            {{ getInitials(user?.name) }}
                         </div>
 
                         <div class="text-left hidden lg:block">
-                            <p class="text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-primary-600 transition">{{ user.name }}</p>
+                            <p class="text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-primary-600 transition">{{ user?.name }}</p>
                         </div>
                     </button>
                 </div>
@@ -276,6 +544,7 @@ const getInitials = (name) => {
             </main>
         </div>
 
+        <!-- Right Profile Panel -->
         <aside 
             class="fixed top-0 right-0 h-screen w-80 shadow-2xl z-[70] transform transition-transform duration-500 overflow-y-auto border-l border-white/20 dark:border-white/10
             bg-white dark:bg-slate-900 rounded-none"
@@ -299,8 +568,8 @@ const getInitials = (name) => {
                 <div class="flex flex-col items-center mb-8 w-full">
                     <div class="relative group cursor-pointer mb-6" @click="openAvatarModal">
                         <div class="w-24 h-24 flex items-center justify-center text-3xl font-bold text-primary-600 relative overflow-hidden">
-                            <img v-if="user.avatar" :src="user.avatar" class="w-full h-full object-contain" alt="Profile">
-                            <span v-else>{{ getInitials(user.name) }}</span>
+                            <img v-if="user?.avatar" :src="user.avatar" class="w-full h-full object-contain" alt="Profile">
+                            <span v-else>{{ getInitials(user?.name) }}</span>
                             <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                 <span class="text-white font-bold text-xs">CHANGE</span>
                             </div>
@@ -309,7 +578,7 @@ const getInitials = (name) => {
 
                     <div class="w-full text-center">
                         <div v-if="!isEditingName" class="flex items-center justify-center gap-2 group">
-                            <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100">{{ user.name }}</h2>
+                            <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100">{{ user?.name }}</h2>
                             <button @click="startEditingName" class="p-1 text-slate-400 group-hover:text-primary-500 transition">
                                 <Pen class="w-3.5 h-3.5" />
                             </button>
@@ -338,7 +607,7 @@ const getInitials = (name) => {
                                 class="p-1.5 bg-gray-200 text-gray-600 rounded-none hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
                             >✕</button>
                         </div>
-                        <p class="text-slate-500 dark:text-slate-400 text-xs mt-1">{{ user.email }}</p>
+                        <p class="text-slate-500 dark:text-slate-400 text-xs mt-1">{{ user?.email }}</p>
                     </div>
                 </div>
 
@@ -383,6 +652,7 @@ const getInitials = (name) => {
             </div>
         </aside>
 
+        <!-- Modals -->
         <Modal :show="showAvatarModal" @close="showAvatarModal = false" max-width="2xl">
             <div class="p-8 bg-white dark:bg-slate-800 rounded-lg"> 
                 <h2 class="text-xl font-bold text-gray-900 dark:text-slate-100 mb-8 text-center md:text-left">Select Profile Avatar</h2>
@@ -454,10 +724,11 @@ const getInitials = (name) => {
                 </div>
                 
                 <div class="space-y-1 max-h-60 overflow-y-auto pr-2 no-scrollbar mb-4">
-                    <div v-if="user.skills.length === 0" class="text-sm text-slate-500 italic py-4">
+                    <div v-if="!user?.skills || user.skills.length === 0" class="text-sm text-slate-500 italic py-4">
                         You haven't added any skills yet.
                     </div>
                     <label 
+                        v-else
                         v-for="skill in user.skills" 
                         :key="skill.id" 
                         class="flex items-center space-x-3 cursor-pointer p-3 border border-transparent hover:bg-gray-50 dark:hover:bg-slate-800 rounded-lg transition-colors"
@@ -479,32 +750,30 @@ const getInitials = (name) => {
                 </div>
 
                 <div class="flex justify-end gap-3 pt-4 border-t border-gray-100 dark:border-white/10">
-                    <SecondaryButton @click="showSkillModal = false" :disabled="skillForm.processing">Cancel</SecondaryButton>
+                    <SecondaryButton @click="showSkillModal = false" class="rounded-lg px-4" :disabled="skillForm.processing">Cancel</SecondaryButton>
                     <PrimaryButton 
                         @click="saveSkills" 
-                        :disabled="skillForm.processing"
-                        class="flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        :disabled="skillForm.processing" 
+                        class="rounded-lg px-6 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <svg v-if="skillForm.processing" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <span>{{ skillForm.processing ? 'Saving...' : 'Save Changes' }}</span>
+                        <span>{{ skillForm.processing ? 'Saving...' : 'Save Skills' }}</span>
                     </PrimaryButton>
                 </div>
             </div>
         </Modal>
 
-        <Modal :show="showPasswordModal" @close="closePasswordModal">
-            <div class="p-6 bg-white dark:bg-slate-900 rounded-lg">
-                <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-bold text-gray-900 dark:text-slate-100">Change Password</h2>
-                    <button @click="closePasswordModal" class="text-gray-400 hover:text-gray-600"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg></button>
-                </div>
+        <!-- Modal Change Password -->
+        <Modal :show="showPasswordModal" @close="closePasswordModal" max-width="lg">
+            <div class="p-6 bg-white dark:bg-slate-800 rounded-lg">
                 <UpdatePasswordForm @close="closePasswordModal" />
             </div>
         </Modal>
 
+        <!-- Toast bawaan dipertahankan -->
         <Toast />
     </div>
 </template>

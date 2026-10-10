@@ -81,7 +81,7 @@ class TaskController extends Controller
         $request->validate([
             'pm'           => 'nullable|numeric',
             'communicator' => 'array',
-            'engineer'   => 'array',
+            'engineer'     => 'array',
             'designer'     => 'array',
         ]);
 
@@ -96,7 +96,8 @@ class TaskController extends Controller
             'reviewer' => 'array',
         ]);
 
-        $this->taskService->assignReviewer($task, $request->reviewer ?? []);
+        $reviewerIds = array_filter($request->input('reviewer', []));
+        $this->taskService->assignReviewer($task, $reviewerIds);
 
         return back()->with('success', 'Reviewer berhasil diupdate!');
     }

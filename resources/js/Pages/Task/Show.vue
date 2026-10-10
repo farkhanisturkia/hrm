@@ -127,8 +127,6 @@ const props = defineProps({
   userData: {},
 });
 
-console.log(props.task)
-
 const formatDate = (date, withTime = false) => {
   if (!date) return '-';
   let formatString = 'DD MMMM YYYY';

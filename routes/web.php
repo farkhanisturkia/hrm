@@ -11,9 +11,11 @@ use App\Http\Controllers\LogtimeController;
 use App\Http\Controllers\ImportController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\NotificationController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -88,6 +90,8 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'Index'])->name('profile.Index');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::patch('/profile/skills', [ProfileController::class, 'updateSkills'])->name('profile.skills.update');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.markAsRead');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllAsRead');
 });
 
 require __DIR__.'/auth.php';

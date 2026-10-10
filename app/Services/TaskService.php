@@ -257,14 +257,15 @@ class TaskService
     public function assignTask(Task $task, array $data): void
     {
         $oldAssignments = [
-            'Engineer' => $task->engineer ?? [],
-            'Designer' => $task->designer ?? [],
-            'Communicator' => $task->communicator ?? []
+            'PM'           => $task->pm ? [$task->pm] : [],
+            'Engineer'     => $task->engineer ?? [],
+            'Designer'     => $task->designer ?? [],
+            'Communicator' => $task->communicator ?? [],
         ];
 
         $task->update([
-            'pm' => $data['pm'] ?? null,
-            'engineer'   => !empty($data['engineer']) ? $data['engineer'] : null,
+            'pm'           => $data['pm'] ?? null,
+            'engineer'     => !empty($data['engineer']) ? $data['engineer'] : null,
             'designer'     => !empty($data['designer']) ? $data['designer'] : null,
             'communicator' => !empty($data['communicator']) ? $data['communicator'] : null,
         ]);
@@ -272,11 +273,13 @@ class TaskService
         $this->createLog("[ASSIGN] {$task->issue}");
 
         $newAssignments = [
-            'Engineer' => $data['engineer'] ?? [],
-            'Designer' => $data['designer'] ?? [],
+            'PM'           => !empty($data['pm']) ? [$data['pm']] : [],
+            'Engineer'     => $data['engineer'] ?? [],
+            'Designer'     => $data['designer'] ?? [],
             'Communicator' => $data['communicator'] ?? [],
         ];
 
+        // Mengirim array lama & baru ke NotificationService
         $this->notificationService->sendAssignmentNotification($task, $oldAssignments, $newAssignments);
     }
 
@@ -308,7 +311,7 @@ class TaskService
         $this->createLog("[ASSIGN] {$task->issue}");
 
         if (!empty($toAdd)) {
-            $this->notificationService->sendReviwerAssigned($task, array_values($toAdd));
+            $this->notificationService->sendReviewerAssigned($task, array_values($toAdd));
         }
 
         if (!empty($toRemove)) {
