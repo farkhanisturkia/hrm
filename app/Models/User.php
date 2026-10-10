@@ -29,6 +29,7 @@ class User extends Authenticatable
         'password',
         'avatar',
         'face_embedding',
+        'starred_tasks',
     ];
 
     /**
@@ -52,6 +53,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password'          => 'hashed',
             'face_embedding'    => 'array',
+            'starred_tasks'     => 'array',
             'is_wfa_allowed'    => 'boolean',
         ];
     }

@@ -21,6 +21,22 @@ class TaskController extends Controller
         protected TaskService $taskService
     ) {}
 
+    public function toggleStar(Request $request, Task $task)
+    {
+        $user = $request->user();
+        $starred = $user->starred_tasks ?? [];
+
+        if (in_array($task->id, $starred)) {
+            $starred = array_values(array_diff($starred, [$task->id]));
+        } else {
+            $starred[] = $task->id;
+        }
+
+        $user->update(['starred_tasks' => $starred]);
+
+        return back();
+    }
+
     public function index(Request $request): Response
     {
         $tasks = $this->taskService->getFilteredTasks($request->query());

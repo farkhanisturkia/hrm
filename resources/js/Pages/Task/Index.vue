@@ -45,9 +45,21 @@ onMounted(() => {
 const page = usePage();
 const role = computed(() => page.props.auth.user.role);
 const currentUserId = computed(() => page.props.auth.user.id);
+const starredTasks = computed(() => page.props.auth.user.starred_tasks || []);
 
 const isDesktop = typeof window !== 'undefined' ? window.innerWidth >= 640 : false;
 const options = ref(isDesktop);
+
+const isStarred = (taskId) => {
+  return starredTasks.value.includes(taskId);
+};
+
+const handleToggleStar = (task) => {
+  router.post(route('task.toggleStar', task.id), {}, {
+    preserveScroll: true,
+    preserveState: true,
+  });
+};
 
 const handleOpenOptions = () => {
   options.value = !options.value;
@@ -98,7 +110,7 @@ const selectedAssign = ref(
 );
 
 const totalColumns = computed(() => {
-  let count = 6;
+  let count = 7;
   
   if (['manager', 'leader', 'communicator'].includes(role.value)) {
     count += 1;
@@ -386,6 +398,7 @@ const visibleButtons = computed(() => {
               <table class="w-full text-left dark:text-slate-200 table-auto border-collapse">
                 <thead>
                   <tr class="bg-white/50 dark:bg-slate-900/80 backdrop-blur-md border-b border-white/20 dark:border-white/10">
+                    <th class="px-4 py-3"></th>
                     <th class="px-4 py-3 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider whitespace-nowrap">Assign</th>
                     <th class="px-4 py-3 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider whitespace-nowrap w-full">Issue</th>
                     <th class="px-4 py-3 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider whitespace-nowrap">Project</th>
@@ -405,6 +418,35 @@ const visibleButtons = computed(() => {
                 </thead>
                 <tbody class="divide-y divide-white/20 dark:divide-white/5">
                   <tr v-for="task in tasks.data" :key="task.id" class="hover:bg-white/30 dark:hover:bg-primary-500/10 transition duration-200">
+                    <td class="ps-4 py-3 align-middle text-center whitespace-nowrap">
+                      <button
+                        type="button"
+                        @click="handleToggleStar(task)"
+                        class="p-1 rounded-full transition-transform active:scale-125 focus:outline-none"
+                        :title="isStarred(task.id) ? 'Unstar task' : 'Star task'"
+                      >
+                        <svg
+                          v-if="isStarred(task.id)"
+                          class="w-5 h-5 text-amber-400 fill-amber-400 drop-shadow-sm transition-colors duration-200"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                        </svg>
+
+                        <svg
+                          v-else
+                          class="w-5 h-5 text-gray-400 dark:text-slate-500 hover:text-amber-400 dark:hover:text-amber-400 transition-colors duration-200"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="2"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          viewBox="0 0 24 24"
+                        >
+                          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                        </svg>
+                      </button>
+                    </td>
 
                     <td class="px-4 py-3 align-middle text-sm min-w-[180px]">
                       <div class="grid grid-cols-2 gap-1.5">

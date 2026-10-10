@@ -54,6 +54,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/task/{task}', [TaskController::class, 'show'])->name('task.show');
     Route::post('/task', [TaskController::class, 'store'])->name('task.store')->middleware('role:manager,leader,communicator');
     Route::post('/task/{task}', [TaskController::class, 'changeIsActive'])->name('task.changeIsActive')->middleware('role:manager,leader,communicator');
+    Route::post('/task/{task}/star', [TaskController::class, 'toggleStar'])->name('task.toggleStar');
     Route::post('/task/{pullRequest}/reply', [TaskController::class, 'replyTask'])->name('task.replyTask');
     Route::post('/task/{task}/comment', [TaskController::class, 'commentTask'])->name('task.commentTask');
     Route::put('/task/{task}/edit', [TaskController::class, 'update'])->name('task.update')->middleware('role:manager,leader,communicator');

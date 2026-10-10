@@ -58,11 +58,14 @@ class TaskService
         $taskVersion = Cache::get('tasks_cache_version', 1);
         $projectVersion = Cache::get('projects_cache_version', 1);
 
+        $starredTasks = $user->starred_tasks ?? [];
+        $starredKey   = md5(json_encode($starredTasks));
+
         $projectKey = $projectId ? $projectId : 'all';
         $creatorKey = $creatorId ? $creatorId : 'all';
         $assignKey = $assignId ? $assignId : 'all';
-        $cacheKey = "all_task_t{$taskVersion}_p{$projectVersion}_u{$user->id}_pk{$projectKey}_ck{$creatorKey}_ak{$assignKey}_s" . md5($search) . "_pg{$page}";
-        return Cache::remember($cacheKey, 1800, function () use ($filters, $user) {
+        $cacheKey = "all_task_t{$taskVersion}_p{$projectVersion}_u{$user->id}_sk{$starredKey}_pk{$projectKey}_ck{$creatorKey}_ak{$assignKey}_s" . md5($search) . "_pg{$page}";
+        return Cache::remember($cacheKey, 1800, function () use ($filters, $user, $starredTasks) {
             $query = Task::query()->with('project');
 
             if (!empty($filters['project_id'])) {
@@ -102,6 +105,11 @@ class TaskService
                 });
             } elseif ($user->role === 'designer') {
                 $query->whereJsonContains('designer', $user->id);
+            }
+
+            if (!empty($starredTasks)) {
+                $starredIds = implode(',', array_map('intval', $starredTasks));
+                $query->orderByRaw("FIELD(id, {$starredIds}) DESC");
             }
 
             return $query

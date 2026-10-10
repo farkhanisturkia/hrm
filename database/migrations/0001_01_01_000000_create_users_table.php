@@ -21,6 +21,7 @@ return new class extends Migration
             $table->boolean('isActive')->default(true);
             $table->timestamp('email_verified_at')->nullable();
             $table->json('face_embedding')->nullable();
+            $table->json('starred_tasks')->nullable();
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();
