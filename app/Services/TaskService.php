@@ -63,8 +63,9 @@ class TaskService
 
         $projectKey = $projectId ? $projectId : 'all';
         $creatorKey = $creatorId ? $creatorId : 'all';
-        $assignKey = $assignId ? $assignId : 'all';
-        $cacheKey = "all_task_t{$taskVersion}_p{$projectVersion}_u{$user->id}_sk{$starredKey}_pk{$projectKey}_ck{$creatorKey}_ak{$assignKey}_s" . md5($search) . "_pg{$page}";
+        $assignKey  = $assignId ? $assignId : 'all';
+        $cacheKey   = "all_task_t{$taskVersion}_p{$projectVersion}_u{$user->id}_sk{$starredKey}_pk{$projectKey}_ck{$creatorKey}_ak{$assignKey}_s" . md5($search) . "_pg{$page}";
+
         return Cache::remember($cacheKey, 1800, function () use ($filters, $user, $starredTasks) {
             $query = Task::query()->with('project');
 
@@ -100,12 +101,14 @@ class TaskService
             if ($user->role === 'engineer') {
                 $query->where(function ($q) use ($user) {
                     $q->where('pm', $user->id)
-                    ->orwhereJsonContains('engineer', $user->id)
+                    ->orWhereJsonContains('engineer', $user->id)
                     ->orWhereJsonContains('reviewer', $user->id);
                 });
             } elseif ($user->role === 'designer') {
                 $query->whereJsonContains('designer', $user->id);
             }
+
+            $query->orderBy('isActive', 'desc');
 
             if (!empty($starredTasks)) {
                 $starredIds = implode(',', array_map('intval', $starredTasks));
@@ -113,7 +116,9 @@ class TaskService
             }
 
             return $query
-                ->orderByRaw('ISNULL(due_date), due_date ASC')
+                ->orderByRaw('ISNULL(due_date) ASC')
+                ->orderBy('due_date', 'asc')
+                ->orderBy('created_at', 'desc')
                 ->paginate(10)
                 ->withQueryString();
         });
