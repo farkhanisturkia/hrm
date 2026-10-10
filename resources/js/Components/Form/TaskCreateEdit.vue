@@ -1,8 +1,7 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
-import { computed } from 'vue'; 
+import { ref, computed } from 'vue'; 
 import Close from '../Icon/Close.vue';
-import Plus from '../Icon/Plus.vue';
 import TextInput from '@/Components/TextInput.vue';
 import InputError from '@/Components/InputError.vue';
 import InputLabel from '@/Components/InputLabel.vue';
@@ -18,10 +17,6 @@ const props = defineProps({
     projectId: '',
     isEditMode: Boolean,
 });
-
-const getNameUser = (id) => {
-    return id ? props.users?.find(u => u.id === id)?.name : '-';
-};
 
 const formatDate = (date) => {
     if (!date) return '-';
@@ -51,16 +46,36 @@ const form = useForm({
 
 const submitForm = () => {
     form.related_links = form.related_links.filter(link => link.trim() !== '');
+
+    const payload = {
+        ...form.data(),
+        generate_spreadsheet: form.related_links.includes('[GENERATE_SPREADSHEET]'),
+    };
+
     const routeName = props.isEditMode ? 'task.update' : 'task.store';
     const routeParams = props.isEditMode ? props.task.id : undefined;
 
-    form.post(route(routeName, routeParams), {
+    form.transform(() => payload).post(route(routeName, routeParams), {
         onSuccess: () => emit('close'),
     });
 };
 
 const addRelatedLink = () => {
     form.related_links.push('');
+};
+
+const generateSpreadsheetRequested = ref(false);
+
+const addSpreadsheetLink = () => {
+    const placeholder = '[GENERATE_SPREADSHEET]';
+
+    if (form.related_links.length === 1 && form.related_links[0] === '') {
+        form.related_links[0] = placeholder;
+    } else {
+        form.related_links.push(placeholder);
+    }
+    
+    generateSpreadsheetRequested.value = true;
 };
 
 const removeRelatedLink = (index) => {
@@ -75,12 +90,6 @@ const cancel = () => {
     form.reset();
     emit('close');
 };
-
-const types = [
-    { id: 'low', name: 'low' },
-    { id: 'normal', name: 'normal' },
-    { id: 'high', name: 'high' },
-];
 </script>
 
 <template>
@@ -165,9 +174,15 @@ const types = [
                                         <Close class="w-4 h-4" />
                                     </button>
                                 </div>
-                                <button type="button" @click="addRelatedLink" class="inline-flex items-center text-sm font-bold text-primary-600 dark:text-primary-400 hover:underline mt-2 uppercase tracking-widest transition-all">
-                                    + Add Related Link
-                                </button>
+                                
+                                <div class="flex items-center gap-4 mt-2">
+                                    <button type="button" @click="addRelatedLink" class="inline-flex items-center text-sm font-bold text-primary-600 dark:text-primary-400 hover:underline uppercase tracking-widest transition-all">
+                                        + Add Related Link
+                                    </button>
+                                    <button type="button" @click="addSpreadsheetLink" class="inline-flex items-center text-sm font-bold text-emerald-600 dark:text-emerald-400 hover:underline uppercase tracking-widest transition-all">
+                                        + Generate Spreadsheet
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>

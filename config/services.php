@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'google' => [
+        'template_id' => env('GOOGLE_DRIVE_TEMPLATE_FILE_ID'),
+        'shared_drive_id' => env('GOOGLE_DRIVE_SHARED_DRIVE_ID'),
+    ],
 ];

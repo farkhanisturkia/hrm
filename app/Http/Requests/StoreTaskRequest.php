@@ -14,13 +14,14 @@ class StoreTaskRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'project_id'    => 'required',
-            'issue'         => 'required|string|max:255',
-            'ticket_link'   => 'nullable|string|max:255',
-            'related_links' => 'nullable|array',
-            'description'   => 'nullable|string',
-            'start_date'    => 'required|string',
-            'due_date'      => 'nullable|string',
+            'project_id'           => 'required',
+            'issue'                => 'required|string|max:255',
+            'ticket_link'          => 'nullable|string|max:255',
+            'related_links'        => 'nullable|array',
+            'description'          => 'nullable|string',
+            'start_date'           => 'required|string',
+            'due_date'             => 'nullable|string',
+            'generate_spreadsheet' => 'nullable|boolean',
         ];
     }
 }

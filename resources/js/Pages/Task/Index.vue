@@ -294,7 +294,7 @@ const visibleButtons = computed(() => {
                     label="name"
                     valueKey="id"
                     class="block w-full h-[42px]"
-                    placeholder="Select user..."
+                    placeholder="Select project..."
                     :dark="true"
                   />
               </div>

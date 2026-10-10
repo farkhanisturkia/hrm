@@ -17,6 +17,9 @@ use App\Models\ProjectOwner;
 use App\Models\TaskReviewer;
 use App\Services\TaskNotificationService;
 
+use Google\Client;
+use Google\Service\Drive;
+
 class TaskService
 {
     public function __construct(
@@ -123,15 +126,28 @@ class TaskService
         $project = Project::findOrFail($data['project_id']);
 
         $task = $project->tasks()->create([
-            'issue' => $data['issue'],
-            'ticket_link' => $data['ticket_link'] ?? null,
+            'issue'         => $data['issue'],
+            'ticket_link'   => $data['ticket_link'] ?? null,
             'related_links' => !empty($data['related_links']) ? $data['related_links'] : null,
-            'description' => $data['description'] ?? null,
-            'start_date' => Carbon::parse($data['start_date']),
-            'due_date' => !empty($data['due_date']) ? $data['due_date'] : null,
-            'creator' => Auth::id(),
-            'updater' => Auth::id(),
+            'description'   => $data['description'] ?? null,
+            'start_date'    => Carbon::parse($data['start_date']),
+            'due_date'      => !empty($data['due_date']) ? $data['due_date'] : null,
+            'creator'       => Auth::id(),
+            'updater'       => Auth::id(),
         ]);
+
+        if (!empty($data['generate_spreadsheet'])) {
+            $sheetUrl = $this->uploadToGoogleDrive($task);
+
+            if ($sheetUrl) {
+                $links = $task->related_links ?? [];
+                $links = array_map(function ($link) use ($sheetUrl) {
+                    return $link === '[GENERATE_SPREADSHEET]' ? $sheetUrl : $link;
+                }, $links);
+
+                $task->update(['related_links' => $links]);
+            }
+        }
 
         $this->createLog("[CREATE] {$task->issue}!");
         return $task;
@@ -141,9 +157,21 @@ class TaskService
     {
         $task->load('project');
         $oldProjectName = $task->project->name ?? 'None';
-        $oldIssue = $task->issue;
+        $oldIssue       = $task->issue;
 
         $newProject = Project::findOrFail($data['project_id']);
+
+        $newRelatedLinks = !empty($data['related_links']) ? $data['related_links'] : null;
+
+        if (!empty($data['generate_spreadsheet'])) {
+            $sheetUrl = $this->uploadToGoogleDrive($task);
+
+            if ($sheetUrl && !empty($newRelatedLinks)) {
+                $newRelatedLinks = array_map(function ($link) use ($sheetUrl) {
+                    return $link === '[GENERATE_SPREADSHEET]' ? $sheetUrl : $link;
+                }, $newRelatedLinks);
+            }
+        }
 
         $changes = [];
         if ($task->project_id !== $newProject->id) {
@@ -158,12 +186,13 @@ class TaskService
             $newLink = $newTicketLink ?? 'None';
             $changes[] = "ticket_link from '{$oldLink}' to '{$newLink}'";
         }
-        $newRelatedLinks = !empty($data['related_links']) ? $data['related_links'] : null;
+
         if ($task->related_links !== $newRelatedLinks) {
             $oldRel = !empty($task->related_links) ? json_encode($task->related_links) : 'None';
             $newRel = !empty($newRelatedLinks) ? json_encode($newRelatedLinks) : 'None';
             $changes[] = "related_links from '{$oldRel}' to '{$newRel}'";
         }
+
         $newDescription = $data['description'] ?? null;
         if ($task->description !== $newDescription) {
             $oldDesc = $task->description ?? 'None';
@@ -354,5 +383,52 @@ class TaskService
             'target'        => 'task',
             'description'   => $description,
         ]);
+    }
+
+    private function uploadToGoogleDrive(Task $task): ?string
+    {
+        try {
+            $client = new Client();
+            $client->setAuthConfig(storage_path('app/stalwart-coast-510004-c4-e51827f744cd.json'));
+            $client->addScope(Drive::DRIVE);
+
+            $driveService = new Drive($client);
+            $templateFileId = config('services.google.template_id', env('GOOGLE_DRIVE_TEMPLATE_FILE_ID'));
+            $sharedDriveId  = config('services.google.shared_drive_id', env('GOOGLE_DRIVE_SHARED_DRIVE_ID'));
+
+            $copyMetadata = new Drive\DriveFile([
+                'name'    => "Checklist Task #{$task->issue}",
+                'parents' => [$sharedDriveId],
+                'mimeType' => 'application/vnd.google-apps.spreadsheet',
+            ]);
+
+            $file = $driveService->files->copy($templateFileId, $copyMetadata, [
+                'supportsAllDrives'  => true,
+                'supportsTeamDrives' => true,
+                'fields'             => 'id, webViewLink',
+            ]);
+
+            $targetEmail = Auth::user()?->email ?? 'farkhan@kyodo-i.com';
+            try {
+                $permission = new Drive\Permission([
+                    'type'         => 'user',
+                    'role'         => 'writer',
+                    'emailAddress' => $targetEmail,
+                ]);
+
+                $driveService->permissions->create($file->id, $permission, [
+                    'supportsAllDrives' => true,
+                    'supportsTeamDrives' => true,
+                ]);
+            } catch (\Exception $e) {
+                \Log::warning("Permission set notice for {$targetEmail}: " . $e->getMessage());
+            }
+
+            return $file->webViewLink;
+
+        } catch (\Exception $e) {
+            \Log::error("Failed to generate Google Sheet: " . $e->getMessage());
+            return null;
+        }
     }
 }
