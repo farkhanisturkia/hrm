@@ -272,16 +272,11 @@ onBeforeUnmount(() => {
                                     id="work-type" 
                                     v-model="workType" 
                                     @change="unlockAudioBrowserPolicy"
-                                    class="w-full appearance-none bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200"
+                                    class="w-full bg-gray-50 border border-gray-200 text-gray-700 font-semibold text-sm rounded-xl pl-4 pr-10 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=UTF-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%236B7280%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.293%207.293a1%201%200%20011.414%200L10%2010.586l3.293-3.293a1%201%200%20111.414%201.414l-4%204a1%201%200%2001-1.414%200l-4-4a1%201%200%20010-1.414z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-[position:right_0.75rem_center] bg-no-repeat"
                                 >
                                     <option value="wfo">Kerja di Kantor (WFO)</option>
                                     <option value="wfa">Kerja dari Luar (WFA)</option>
                                 </select>
-                                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
-                                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                    </svg>
-                                </div>
                             </div>
                         </div>
 
@@ -289,14 +284,19 @@ onBeforeUnmount(() => {
                             <button @click="attendanceType = 'check_in'; unlockAudioBrowserPolicy();"
                                 class="flex-1 py-3 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2"
                                 :class="attendanceType === 'check_in' ? 'bg-emerald-600 text-white shadow-md transform scale-[1.02]' : 'text-gray-500 hover:bg-gray-50'">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clip-rule="evenodd" /></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z" clip-rule="evenodd" />
+                                </svg>
                                 CHECK IN
                             </button>
+                            
                             <button @click="attendanceType = 'check_out'; unlockAudioBrowserPolicy();"
                                 class="flex-1 py-3 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2"
                                 :class="attendanceType === 'check_out' ? 'bg-rose-600 text-white shadow-md transform scale-[1.02]' : 'text-gray-500 hover:bg-gray-50'">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v3.586L7.707 9.293a1 1 0 10-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L11 10.586V7z" clip-rule="evenodd" />
+                                </svg>
                                 CHECK OUT
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-1.293-9.293a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L10 5.586 8.707 4.293a1 1 0 00-1.414 1.414l3 3zM10 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" /><path d="M10 12a1 1 0 100 2 1 1 0 000-2z" /></svg>
                             </button>
                         </div>
 
