@@ -40,6 +40,7 @@ class LogtimeExport implements FromCollection, WithHeadings, WithTitle
             return [
                 'issue'       => $logtime->task?->issue ?? 'N/A',
                 'ticket_link' => $logtime->task?->ticket_link ?? 'N/A',
+                'description' => $logtime->description ?? 'N/A',
                 'date'        => Carbon::parse($logtime->date)->format('d-m-Y'),
                 'time_used'   => $logtime->time_used,
             ];
@@ -48,6 +49,6 @@ class LogtimeExport implements FromCollection, WithHeadings, WithTitle
 
     public function headings(): array
     {
-        return ['Issue', 'Ticket', 'Date', 'Hours'];
+        return ['Issue', 'Ticket', 'Description', 'Date', 'Hours'];
     }
 }

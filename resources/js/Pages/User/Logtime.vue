@@ -344,6 +344,7 @@ const closeDetailLogtime = () => {
                   <tr>
                     <th class="p-5 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider w-48">Date</th>
                     <th class="p-5 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider">Issue</th>
+                    <th class="p-5 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider">Description</th>
                     <th class="p-5 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider w-36">Time used</th>
                     <th class="p-5 text-center font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider w-32">Action</th>
                   </tr>
@@ -351,7 +352,7 @@ const closeDetailLogtime = () => {
                 <tbody class="divide-y divide-white/20 dark:divide-white/5">
                   <template v-for="(group, date) in groupedLogtimes" :key="date">
                     <tr class="bg-primary-50/50 dark:bg-primary-500/10 backdrop-blur-sm border-t border-white/20 dark:border-white/10">
-                      <td class="py-2.5 px-5 font-bold text-primary-700 dark:text-primary-400" colspan="2">
+                      <td class="py-2.5 px-5 font-bold text-primary-700 dark:text-primary-400" colspan="3">
                         {{ date }}
                       </td>
                       <td class="py-2.5 px-5" colspan=2>
@@ -369,6 +370,9 @@ const closeDetailLogtime = () => {
                         <a :href="route('task.show', value.task.id)" class="text-sm font-bold text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 hover:underline decoration-primary-300 underline-offset-2 transition">
                           {{ value.task.issue }}
                         </a>
+                      </td>
+                      <td class="p-5 align-middle text-sm text-gray-500 dark:text-slate-400 whitespace-nowrap">
+                        {{ value.description }}
                       </td>
                       <td class="p-5 align-middle text-sm text-gray-700 dark:text-slate-200 font-medium whitespace-nowrap">
                         {{ parseFloat(value.time_used) }} h
