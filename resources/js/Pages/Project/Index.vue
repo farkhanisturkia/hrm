@@ -290,7 +290,7 @@ const visibleButtons = computed(() => {
                   <td class="p-5 align-middle text-sm text-gray-500 dark:text-slate-400">
                     #{{ project.id }}
                   </td>
-                  <td class="p-5 align-middle">
+                  <td class="p-5 align-middle min-w-[300px]">
                     <a
                       :href="route('task.list', { project_id: project.id })"
                       class="font-bold text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 hover:underline decoration-primary-300 underline-offset-2 transition flex items-center gap-2"
@@ -299,7 +299,7 @@ const visibleButtons = computed(() => {
                       {{ project.name }}
                     </a>
                   </td>
-                  <td class="p-5 align-middle">
+                  <td class="p-5 align-middle min-w-[150px]">
                     <span v-if="project.project_owner" class="px-2.5 py-1 rounded-md bg-slate-100/50 dark:bg-slate-800/40 text-slate-600 dark:text-slate-300 text-xs font-bold border border-slate-200/50 dark:border-white/10">
                         {{ project.project_owner.name }}
                     </span>
