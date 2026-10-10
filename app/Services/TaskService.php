@@ -129,6 +129,17 @@ class TaskService
         });
     }
 
+    public function getAllTasksWithProject(): Collection
+    {
+        $tasksVersion = Cache::get('tasks_cache_version', 1);
+        $projectVersion = Cache::get('projects_cache_version', 1);
+        $tasksKey = "all_task_t{$tasksVersion}_p{$projectVersion}";
+
+        return Cache::remember($tasksKey, 1800, function () {
+            return Task::with('project')->get();
+        });
+    }
+
     public function store(array $data): Task
     {
         $project = Project::findOrFail($data['project_id']);

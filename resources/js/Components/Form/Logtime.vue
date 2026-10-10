@@ -118,7 +118,7 @@ const cancel = () => {
                     id="type"
                     v-model="form.task_id"
                     :options="tasks"
-                    label="issue"
+                    :label="item => `${item.issue} - ${item.project?.name ?? ''}`"
                     valueKey="id"
                     class="mt-1 block w-full"
                     placeholder="Search or select a task..."

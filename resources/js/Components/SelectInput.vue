@@ -13,7 +13,7 @@ const props = defineProps({
         default: () => [],
     },
     label: {
-        type: String,
+        type: [String, Function],
         default: 'name',
     },
     valueKey: {
@@ -42,22 +42,32 @@ const search = ref('');
 const isOpen = ref(false);
 const input = ref(null);
 
+const getOptionLabel = (option) => {
+    if (!option) return '';
+    if (typeof props.label === 'function') {
+        return props.label(option) ?? '';
+    }
+    return option[props.label] ?? '';
+};
+
 const filteredOptions = computed(() => {
     const query = search.value.toLowerCase().trim();
     if (!query) return props.options;
     return props.options.filter(option =>
-        option[props.label].toLowerCase().includes(query)
+        getOptionLabel(option).toLowerCase().includes(query)
     );
 });
 
 const selectOption = (option) => {
     const selectedValue = option[props.valueKey];
+    const optionLabel = getOptionLabel(option);
+
     if (props.array.includes(selectedValue)) {
-        alert(`The option "${option[props.label]}" is already selected.`);
+        alert(`The option "${optionLabel}" is already selected.`);
         return;
     }
     model.value = option[props.valueKey];
-    search.value = option[props.label];
+    search.value = optionLabel;
     isOpen.value = false;
 };
 
@@ -77,7 +87,7 @@ onMounted(() => {
         const selectedOption = props.options.find(o => o[props.valueKey] === model.value);
         
         if (selectedOption) {
-            search.value = selectedOption[props.label];
+            search.value = getOptionLabel(selectedOption);
         }
     }
     
@@ -113,10 +123,10 @@ defineExpose({ focus: () => input.value.focus() });
             <div
                 v-for="option in filteredOptions"
                 :key="option[valueKey]"
-                @click="selectOption(option)"
+                @mousedown.prevent="selectOption(option)"
                 class="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-indigo-100 dark:hover:bg-slate-500/30 cursor-pointer"
             >
-                {{ option[label] }}
+                {{ getOptionLabel(option) }}
             </div>
         </div>
         <div

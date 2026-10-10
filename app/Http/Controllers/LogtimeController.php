@@ -24,7 +24,7 @@ class LogtimeController extends Controller
 
         return Inertia::render('User/Logtime', [
             'logtimes' => $this->logtimeService->getLogtimes($query),
-            'tasks'    => $this->taskService->getAllTasks(),
+            'tasks'    => $this->taskService->getAllTasksWithProject(),
             'users'    => $this->logtimeService->getUsers(),
         ]);   
     }
