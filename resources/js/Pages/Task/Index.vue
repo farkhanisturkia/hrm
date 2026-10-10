@@ -97,6 +97,22 @@ const selectedAssign = ref(
   queryParams.value.assign_id ? Number(queryParams.value.assign_id) : ''
 );
 
+const totalColumns = computed(() => {
+  let count = 6;
+  
+  if (['manager', 'leader', 'communicator'].includes(role.value)) {
+    count += 1;
+  }
+  if (['leader', 'engineer', 'communicator', 'designer'].includes(role.value)) {
+    count += 1;
+  }
+  if (['manager', 'leader', 'communicator'].includes(role.value)) {
+    count += 1;
+  }
+
+  return count;
+});
+
 const handleOpenForm = () => {
   selectedTask.value = null;
   isEditMode.value = false;
@@ -371,7 +387,7 @@ const visibleButtons = computed(() => {
                 <thead>
                   <tr class="bg-white/50 dark:bg-slate-900/80 backdrop-blur-md border-b border-white/20 dark:border-white/10">
                     <th class="px-4 py-3 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider whitespace-nowrap">Assign</th>
-                    <th class="px-4 py-3 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider whitespace-nowrap">Issue</th>
+                    <th class="px-4 py-3 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider whitespace-nowrap w-full">Issue</th>
                     <th class="px-4 py-3 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider whitespace-nowrap">Project</th>
                     <th class="px-4 py-3 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider whitespace-nowrap">Ticket Link</th>
                     <th class="px-4 py-3 font-semibold text-gray-600 dark:text-slate-400 text-sm uppercase tracking-wider whitespace-nowrap">Start date</th>
@@ -423,7 +439,7 @@ const visibleButtons = computed(() => {
                       </div>
                     </td>
 
-                    <td class="px-4 py-3 align-middle max-w-[300px]">
+                    <td class="px-4 py-3 align-middle min-w-[300px]">
                       <a 
                         :href="route('task.show', task.id)" 
                         class="inline-flex items-center gap-1.5 text-sm font-extrabold text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 hover:underline decoration-primary-300 underline-offset-2 transition group"
@@ -472,7 +488,7 @@ const visibleButtons = computed(() => {
                       </span>
                     </td>
 
-                    <td class="px-4 py-3 align-middle whitespace-nowrap">
+                    <td v-if="['manager', 'leader', 'communicator'].includes(role)" class="px-4 py-3 align-middle whitespace-nowrap">
                       <div class="flex items-center justify-center gap-3">
                         <button 
                           v-if="['manager', 'leader'].includes(role)"
@@ -495,7 +511,7 @@ const visibleButtons = computed(() => {
                     </td>
                   </tr>
                   <tr v-if="tasks.data.length === 0">
-                      <td colspan="6" class="p-8 text-center text-gray-400 dark:text-gray-500 italic">No tasks found.</td>
+                      <td :colspan="totalColumns" class="p-8 text-center text-gray-400 dark:text-gray-500 italic">No tasks found.</td>
                   </tr>
                 </tbody>
               </table>
