@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Cache;
 
 class LogtimeService
 {
-    public function getLogtimes(array $query): LengthAwarePaginator
+    public function getLogtimes(array $query): array
     {
         $auth = Auth::user();
         $page = $query['page'] ?? 1;
@@ -30,17 +30,29 @@ class LogtimeService
         $logtimeKey = "all_logtime_lt{$logtimeVersion}_u{$targetUserId}_from{$from}_to{$to}_pg{$page}";
 
         return Cache::remember($logtimeKey, 1800, function () use ($query, $targetUserId) {
-            $logtimesQuery = Logtime::with('task')
-                ->where('user_id', $targetUserId)
-                ->orderBy('date', 'desc');
+            $baseQuery = Logtime::query()->where('user_id', $targetUserId);
 
             if (isset($query['from'], $query['to'])) {
                 $fromDate = Carbon::parse($query['from'])->startOfDay();
                 $toDate = Carbon::parse($query['to'])->endOfDay();
-                $logtimesQuery->whereBetween('date', [$fromDate, $toDate]);
+                $baseQuery->whereBetween('date', [$fromDate, $toDate]);
             }
 
-            return $logtimesQuery->paginate(10)->withQueryString();
+            $dailyTotals = (clone $baseQuery)
+                ->selectRaw('DATE(date) as date_key, SUM(time_used) as total_time')
+                ->groupBy('date_key')
+                ->pluck('total_time', 'date_key');
+
+            $logtimes = (clone $baseQuery)
+                ->with('task')
+                ->orderBy('date', 'desc')
+                ->paginate(10)
+                ->withQueryString();
+
+            return [
+                'logtimes'    => $logtimes,
+                'dailyTotals' => $dailyTotals,
+            ];
         });
     }
 

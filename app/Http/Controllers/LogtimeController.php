@@ -21,11 +21,13 @@ class LogtimeController extends Controller
     public function index(Request $request): Response
     {
         $query = $request->query();
+        $logtimeData = $this->logtimeService->getLogtimes($query);
 
         return Inertia::render('User/Logtime', [
-            'logtimes' => $this->logtimeService->getLogtimes($query),
-            'tasks'    => $this->taskService->getAllTasksWithProject(),
-            'users'    => $this->logtimeService->getUsers(),
+            'logtimes'    => $logtimeData['logtimes'],
+            'dailyTotals' => $logtimeData['dailyTotals'],
+            'tasks'       => $this->taskService->getAllTasksWithProject(),
+            'users'       => $this->logtimeService->getUsers(),
         ]);   
     }
 

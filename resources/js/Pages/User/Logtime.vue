@@ -78,7 +78,7 @@ const handleCloseForm = () => {
 const openDeleteModal = (id) => {
   itemToDelete.value = id;
   confirmDeleteModal.value = true;
-}
+};
 
 const handleEdit = (item) => {
   selectedLogtime.value = item;
@@ -89,16 +89,17 @@ const handleEdit = (item) => {
 const closeDeleteModal = () => {
   itemToDelete.value = null;
   confirmDeleteModal.value = false;
-}
+};
 
 const handleConfirmDelete = () => {
   router.delete(route('logtime.destroy', itemToDelete.value), {
     onSuccess: () => closeDeleteModal(),
-  })
+  });
 };
 
 const props = defineProps({
   logtimes: Object,
+  dailyTotals: Object,
   tasks: {},
   users: {}
 });
@@ -109,11 +110,19 @@ const groupedLogtimes = computed(() => {
 
   list.forEach(item => {
     const date = formatDate(item.date);
+    const rawDateKey = moment(item.date).format('YYYY-MM-DD');
+
     if (!grouped[date]) {
-      grouped[date] = { items: [], totalTime: 0 };
+      const totalFromBackend = props.dailyTotals ? props.dailyTotals[rawDateKey] : null;
+
+      grouped[date] = {
+        items: [],
+        totalTime: totalFromBackend !== null && totalFromBackend !== undefined 
+          ? parseFloat(totalFromBackend) 
+          : 0
+      };
     }
     grouped[date].items.push(item);
-    grouped[date].totalTime += parseFloat(item.time_used || 0);
   });
   return grouped;
 });
@@ -155,7 +164,7 @@ const exportLogtime = (summary) => {
 
 const visibleButtons = computed(() => {
   const buttons = [];
-  buttons.push({ action: 'add', icon: Plus, handler: handleOpenForm, text: 'New' })
+  buttons.push({ action: 'add', icon: Plus, handler: handleOpenForm, text: 'New' });
 
   if (['manager', 'communicator'].includes(role.value)) {
     buttons.push(
@@ -172,12 +181,12 @@ const visibleButtons = computed(() => {
 const openDetailLogtime = (item) => {
   selectedLogtime.value = item;
   showDetailLogtime.value = true;
-}
+};
 
 const closeDetailLogtime = () => {
   showDetailLogtime.value = false;
   selectedLogtime.value = null;
-}
+};
 </script>
 
 <template>
@@ -355,7 +364,7 @@ const closeDetailLogtime = () => {
                       <td class="py-2.5 px-5 font-bold text-primary-700 dark:text-primary-400" colspan="3">
                         {{ date }}
                       </td>
-                      <td class="py-2.5 px-5" colspan=2>
+                      <td class="py-2.5 px-5" colspan="2">
                         <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-white/50 dark:bg-slate-900/60 font-bold text-gray-800 dark:text-gray-200 border border-white/40 dark:border-white/10 shadow-sm">
                           {{ group.totalTime }} h
                         </span>
@@ -566,14 +575,13 @@ const closeDetailLogtime = () => {
   background: transparent; 
 }
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: rgba(156, 163, 175, 0.5); /* Abu-abu di Light Mode */
+  background-color: rgba(156, 163, 175, 0.5);
   border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: rgba(156, 163, 175, 0.8);
 }
 
-/* Dark Mode scrollbar */
 :global(.dark) .custom-scrollbar::-webkit-scrollbar-thumb {
   background-color: rgba(255, 255, 255, 0.1);
 }
