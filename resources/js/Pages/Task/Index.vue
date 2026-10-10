@@ -451,9 +451,19 @@ const visibleButtons = computed(() => {
 
                     <td class="px-4 py-3 align-middle text-sm text-gray-700 dark:text-slate-200 whitespace-nowrap">{{ task.project?.name || '-' }}</td>
                     <td class="px-4 py-3 align-middle">
-                      <a :href="task.ticket_link" target="_blank" class="text-sm text-primary-600 dark:text-primary-400 hover:underline truncate block max-w-[200px]">
+                      <a 
+                        v-if="task.ticket_link"
+                        :href="/^https?:\/\//i.test(task.ticket_link) ? task.ticket_link : `https://${task.ticket_link}`" 
+                        target="_blank" 
+                        class="text-sm text-primary-600 dark:text-primary-400 hover:underline truncate block max-w-[200px]"
+                        :title="task.ticket_link"
+                      >
                         {{ task.ticket_link }}
                       </a>
+
+                      <span v-else class="text-sm text-gray-400 dark:text-gray-500">
+                        -
+                      </span>
                     </td>
                     <td class="px-4 py-3 align-middle text-sm text-gray-500 dark:text-slate-400 whitespace-nowrap">{{ formatDate(task.start_date) }}</td>
                     <td class="px-4 py-3 align-middle text-sm whitespace-nowrap">

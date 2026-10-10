@@ -73,7 +73,6 @@ class TaskController extends Controller
             'task'          => $task,
             'projects'      => $projects,
             'totalTimeUsed' => $task->logtimes->sum('time_used'),
-            'prs'           => $task->pullRequests,
         ]);
     }
 

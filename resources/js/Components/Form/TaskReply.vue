@@ -24,7 +24,9 @@ const submitForm = () => {
         data.pr_links = pr_links;
         return data;
     }).post(route('task.replyTask', props.comment.id), {
-        onFinish: () => emit('close'),
+        onSuccess: () => {
+            emit('close');
+        },
     });
 };
 

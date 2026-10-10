@@ -18,10 +18,15 @@ const form = useForm({
 });
 
 const submitForm = () => {
-    form.pr_links = form.pr_links.filter(value => value !== '');
+    const pr_links = form.pr_links.filter(value => value !== '');
 
-    form.post(route('task.commentTask', props.task.id), {
-        onFinish: () => emit('close'),
+    form.transform((data) => {
+        data.pr_links = pr_links;
+        return data;
+    }).post(route('task.commentTask', props.task.id), {
+        onSuccess: () => {
+            emit('close');
+        },
     });
 };
 

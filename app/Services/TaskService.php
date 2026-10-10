@@ -360,7 +360,7 @@ class TaskService
         return $reply;
     }
 
-    public function markReviewCompleted(int $taskId, int $reviewerId): TaskReviewer
+    public function markReviewComplete(int $taskId, int $reviewerId): TaskReviewer
     {
         $taskReviewer = TaskReviewer::where('task_id', $taskId)
             ->where('user_id', $reviewerId)

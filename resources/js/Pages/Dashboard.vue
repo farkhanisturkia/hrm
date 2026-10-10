@@ -31,6 +31,7 @@ const formatDate = (date) => {
   return date ? moment(date).format('DD MMMM YYYY') : '-';
 };
 
+// Logic untuk selalu mengisi tabel task menjadi minimal 10 baris
 const paddedTasks = computed(() => {
   const list = [...props.tasks];
   while (list.length < 10) {
@@ -113,13 +114,18 @@ const paddedTasks = computed(() => {
                         <td class="p-4 align-middle text-sm">
                           <div class="max-w-[250px]"> 
                             <a 
-                              :href="task.ticket_link" 
+                              v-if="task.ticket_link"
+                              :href="/^https?:\/\//i.test(task.ticket_link) ? task.ticket_link : `https://${task.ticket_link}`" 
                               target="_blank" 
                               :title="task.ticket_link"
                               class="block truncate text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-300 hover:underline decoration-primary-300 underline-offset-2 transition"
                             >
-                              {{ task.ticket_link || '-' }}
+                              {{ task.ticket_link }}
                             </a>
+                            
+                            <span v-else class="text-gray-400 dark:text-gray-500">
+                              -
+                            </span>
                           </div>
                         </td>
                         <td class="p-4 align-middle text-sm text-gray-500 dark:text-slate-400">{{ formatDate(task.start_date) }}</td>

@@ -83,7 +83,7 @@ const handleComment = () => {
 };
 
 const handleReply = (id) => {
-  const comment = props.prs.find(p => p.id === id);
+  const comment = props.task.pull_requests.find(p => p.id === id);
   if (comment) {
     openReplyForm.value = true;
     selectedComment.value = comment;
@@ -124,9 +124,10 @@ const props = defineProps({
   task: {},
   projects: {},
   totalTimeUsed: '',
-  prs: {},
   userData: {},
 });
+
+console.log(props.task)
 
 const formatDate = (date, withTime = false) => {
   if (!date) return '-';
@@ -479,8 +480,8 @@ const visibleButtons = computed(() => {
                 Discussion & PRs
             </h3>
             
-            <div v-if="prs.length > 0" class="space-y-6">
-                <div v-for="pr in prs" :key="pr.id" class="relative pl-6 border-l-2 border-primary-200 dark:border-primary-900/50">
+            <div v-if="task.pull_requests.length > 0" class="space-y-6">
+                <div v-for="pr in task.pull_requests" :key="pr.id" class="relative pl-6 border-l-2 border-primary-200 dark:border-primary-900/50">
                     <div class="absolute -left-[9px] top-0 w-4 h-4 rounded-full bg-primary-500 ring-4 ring-white dark:ring-slate-900"></div>
                     
                     <div class="bg-white/60 dark:bg-slate-800/60 backdrop-blur-md border border-white/50 dark:border-white/10 rounded-lg p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -497,10 +498,18 @@ const visibleButtons = computed(() => {
                         </div>
 
                         <div v-if="pr.pr_links && pr.pr_links.length > 0" class="mb-4 flex flex-wrap gap-2">
-                           <a v-for="link in pr.pr_links" :key="link" :href="'//' + link" target="_blank" class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 text-sm font-medium border border-primary-100 dark:border-primary-800 hover:bg-primary-100 dark:hover:bg-primary-900/40 transition">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
-                                {{ link }}
-                           </a>
+                          <a 
+                              v-for="(link, index) in pr.pr_links" 
+                              :key="index" 
+                              :href="/^https?:\/\//i.test(link) ? link : `https://${link}`" 
+                              target="_blank" 
+                              class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 text-sm font-medium border border-primary-100 dark:border-primary-800 hover:bg-primary-100 dark:hover:bg-primary-900/40 transition"
+                          >
+                              <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                              </svg>
+                              {{ link }}
+                          </a>
                         </div>
 
                         <div v-if="pr.replies && pr.replies.length > 0" class="mt-4 space-y-3 pl-4 border-l border-gray-200 dark:border-slate-700">
@@ -510,24 +519,26 @@ const visibleButtons = computed(() => {
                                     <span class="text-[10px] text-gray-400">{{ formatDate(r.created_at, true) }}</span>
                                 </div>
                                 <p class="text-sm text-gray-600 dark:text-slate-400 whitespace-pre-wrap">{{ r.comment }}</p>
-                                <div
-                                  v-if="r.pr_links && r.pr_links.length > 0"
-                                  v-for="links in r.pr_links"
-                                  class="text-[#50B2D8]"
-                                >
-                                  <a 
-                                    :href="'//' + links"
-                                    target="_blank"
-                                    class="flex flex-cols"
+                                <template v-if="r.pr_links && r.pr_links.length > 0">
+                                  <div
+                                    v-for="(link, index) in r.pr_links"
+                                    :key="index"
+                                    class="text-[#50B2D8]"
                                   >
-                                    <span class="flex items-center gap-1 hover:underline">
-                                      <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                                      </svg>
-                                      {{ links }}
-                                    </span>
-                                  </a>
-                                </div>
+                                    <a 
+                                      :href="/^https?:\/\//i.test(link) ? link : `https://${link}`"
+                                      target="_blank"
+                                      class="flex"
+                                    >
+                                      <span class="flex items-center gap-1 hover:underline">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                          <path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                        </svg>
+                                        {{ link }}
+                                      </span>
+                                    </a>
+                                  </div>
+                                </template>
                             </div>
                         </div>
 
